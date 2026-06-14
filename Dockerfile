@@ -12,6 +12,9 @@ COPY . .
 # Install dependencies
 RUN pnpm install
 
+# Generate Prisma Client
+RUN pnpm --filter api exec prisma generate
+
 # Build workspace
 RUN pnpm run build
 
