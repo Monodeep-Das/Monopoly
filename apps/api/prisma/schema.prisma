@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String?
+  googleId     String?  @unique
+  clerkId      String?  @unique
+  avatarUrl    String?
+  isGuest      Boolean  @default(false)
+  isBot        Boolean  @default(false)
+
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  gamesPlayed  Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  roomHost     Room[]       @relation("RoomHost")
+  roomPlayers  RoomPlayer[]
+  gamePlayers  GamePlayer[]
+  friends      Friend[]     @relation("UserFriends")
+  friendOf     Friend[]     @relation("FriendUsers")
+  notifications Notification[]
+}
+
+model Room {
+  id         String   @id @default(uuid())
+  name       String
+  hostId     String
+  inviteCode String   @unique @default(uuid())
+  status     RoomStatus @default(WAITING)
+  maxPlayers Int      @default(4)
+  createdAt  DateTime @default(now())
+
+  host       User         @relation("RoomHost", fields: [hostId], references: [id])
+  players    RoomPlayer[]
+  games      Game[]
+}
+
+enum RoomStatus {
+  WAITING
+  IN_GAME
+  FINISHED
+}
+
+model RoomPlayer {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  isReady  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model Game {
+  id        String   @id @default(uuid())
+  roomId    String
+  winnerId  String?
+  status    GameStatus @default(IN_PROGRESS)
+  gameState String?  // Serialized state of the engine (JSON string)
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  room    Room         @relation(fields: [roomId], references: [id])
+  players GamePlayer[]
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  FINISHED
+  ABORTED
+}
+
+model GamePlayer {
+  id        String   @id @default(uuid())
+  gameId    String
+  userId    String
+  finalRank Int?
+  money     Int      @default(1500)
+  bankrupt  Boolean  @default(false)
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([gameId, userId])
+}
+
+model Friend {
+  id       String   @id @default(uuid())
+  userId   String
+  friendId String
+  status   FriendStatus @default(PENDING)
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendUsers", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+}
+
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      NotificationType
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  GAME_INVITE
+  SYSTEM
+}
