@@ -1,6 +1,7 @@
 FROM node:18-alpine AS base
 
-# Install pnpm
+# Install pnpm and native C bindings for Rust modules (Tailwind Oxide, Next.js SWC)
+RUN apk add --no-cache libc6-compat
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Set working directory
