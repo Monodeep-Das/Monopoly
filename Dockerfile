@@ -1,7 +1,6 @@
-FROM node:18-alpine AS base
+FROM node:22-bookworm AS base
 
-# Install pnpm and native C bindings for Rust modules (Tailwind Oxide, Next.js SWC)
-RUN apk add --no-cache libc6-compat
+# Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Set working directory
@@ -20,7 +19,7 @@ RUN pnpm --filter api exec prisma generate
 RUN pnpm run build
 
 # Production image
-FROM node:18-alpine
+FROM node:22-bookworm
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
