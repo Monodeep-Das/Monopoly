@@ -7,7 +7,12 @@ import { useGameStore } from "./store/game-store";
 import { GameEvent, GameState } from "@richup/shared-types";
 import { useRouter } from "next/navigation";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001/game";
+const getSocketUrl = () => {
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '/game');
+  return "http://localhost:3001/game";
+};
+const SOCKET_URL = getSocketUrl();
 
 let socketInstance: Socket | null = null;
 
