@@ -8,7 +8,10 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Copy, ArrowLeft, Send, Users, Settings, Play, Bot, Check } from "lucide-react";
+import { Copy, ArrowLeft, Send, Users, Settings, Play, Bot, Check, X } from "lucide-react";
+
+import { RoomSettingsModal } from "@/features/rooms/components/RoomSettingsModal";
+import { PlayerProfileModal } from "@/features/rooms/components/PlayerProfileModal";
 
 export default function WaitingRoomPage() {
   const router = useRouter();
@@ -22,6 +25,19 @@ export default function WaitingRoomPage() {
   const hasAttemptedJoin = useRef(false);
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (profile: { nickname?: string; color?: string }) => {
+      if (!user) throw new Error("Not logged in");
+      return roomsApi.updatePlayerProfile(roomId, user.id, profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      setIsProfileOpen(false);
+    },
+  });
 
   const joinRoomMutation = useMutation({
     mutationFn: roomsApi.joinRoom,
@@ -37,6 +53,22 @@ export default function WaitingRoomPage() {
     },
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: (settings: { maxPlayers: number; startingCash: number; map: string }) => 
+      roomsApi.updateRoomSettings(roomId, settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      setIsSettingsOpen(false);
+    },
+  });
+
+  const kickPlayerMutation = useMutation({
+    mutationFn: (playerId: string) => roomsApi.kickPlayer(roomId, playerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+    },
+  });
+
   const { data: room, isLoading } = useQuery({
     queryKey: ["room", roomId],
     queryFn: () => roomsApi.getRoomById(roomId),
@@ -44,6 +76,17 @@ export default function WaitingRoomPage() {
   });
 
   const isHost = room?.hostId === user?.id;
+
+  // Track if we were kicked
+  useEffect(() => {
+    if (room && user && hasAttemptedJoin.current) {
+      const isPlayerInRoom = room.players.some(p => p.userId === user.id);
+      if (!isPlayerInRoom && !isHost) {
+        alert("You have been removed from the room.");
+        router.push("/rooms");
+      }
+    }
+  }, [room, user, isHost, router]);
 
   useEffect(() => {
     if (room && user && !hasAttemptedJoin.current) {
@@ -62,9 +105,14 @@ export default function WaitingRoomPage() {
       socket.on("game_started", () => {
         router.push(`/game/${roomId}`);
       });
+
+      socket.on("room_chat_receive", (payload: { sender: string; text: string }) => {
+        setMessages(prev => [...prev, payload]);
+      });
       
       return () => {
         socket.off("game_started");
+        socket.off("room_chat_receive");
       };
     }
   }, [isConnected, socket, roomId, router]);
@@ -77,9 +125,10 @@ export default function WaitingRoomPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatMessage.trim()) return;
-    setMessages(prev => [...prev, { sender: user?.username || "Guest", text: chatMessage }]);
+    if (socket) {
+      socket.emit("room_chat_send", { text: chatMessage });
+    }
     setChatMessage("");
-    // socket.emit("chat_message", { text: chatMessage });
   };
 
   const copyInvite = () => {
@@ -137,32 +186,32 @@ export default function WaitingRoomPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
           
           {/* Left Column: Chat */}
-          <div className="lg:col-span-1 bg-[#161622]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
-            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
-            <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+          <div className="lg:col-span-1 glassmorphism rounded-3xl flex flex-col overflow-hidden relative group hover:border-indigo-500/30 transition-all duration-500">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+            <div className="p-5 border-b border-white/5 bg-white/[0.02] flex items-center gap-2 relative z-10">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
               <h3 className="font-black text-slate-300 text-xs uppercase tracking-widest">Room Chat</h3>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col scrollbar-thin scrollbar-thumb-white/10">
+            <div className="flex-1 p-5 overflow-y-auto space-y-5 flex flex-col scrollbar-thin scrollbar-thumb-white/10 relative z-10">
               {messages.length === 0 ? (
                 <p className="text-slate-500 text-xs uppercase tracking-widest font-bold text-center my-auto opacity-50">No messages yet</p>
               ) : (
                 messages.map((msg, i) => (
                   <div key={i} className={`text-sm flex flex-col ${msg.sender === user?.username ? "items-end" : "items-start"}`}>
-                    <span className="font-bold text-[10px] text-indigo-400/80 uppercase tracking-wider mb-1">{msg.sender}</span>
-                    <span className="text-slate-200 bg-white/5 border border-white/10 px-3 py-2 rounded-xl shadow-sm">{msg.text}</span>
+                    <span className="font-bold text-[10px] text-indigo-400/80 uppercase tracking-wider mb-1.5">{msg.sender}</span>
+                    <span className={`px-4 py-2.5 rounded-2xl shadow-md max-w-[90%] break-words ${msg.sender === user?.username ? "bg-indigo-600 text-white rounded-tr-sm" : "bg-white/10 text-slate-200 border border-white/5 rounded-tl-sm backdrop-blur-md"}`}>{msg.text}</span>
                   </div>
                 ))
               )}
             </div>
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-white/5 bg-black/20 flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/40 backdrop-blur-md flex gap-3 relative z-10">
               <input 
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Message..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500"
+                placeholder="Type a message..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500 shadow-inner"
               />
-              <button type="submit" className="bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white p-2.5 rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+              <button type="submit" className="bg-indigo-500 hover:bg-indigo-400 text-white p-3 rounded-2xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)] hover:scale-105 active:scale-95 flex items-center justify-center">
                 <Send size={18} />
               </button>
             </form>
@@ -183,19 +232,46 @@ export default function WaitingRoomPage() {
 
               <div className="bg-[#161622]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-[0_0_30px_rgba(0,0,0,0.5)] mb-8">
                 <div className="flex -space-x-4 justify-center mb-8">
-                  {room.players.map((p, i) => (
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      key={p.userId} 
-                      className="w-16 h-16 rounded-full border-2 border-[#161622] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.5)] relative z-10 hover:z-20 transition-transform hover:-translate-y-2 cursor-pointer"
-                    >
-                      <span className="text-2xl font-black text-white drop-shadow-md">{p.user.username.charAt(0).toUpperCase()}</span>
-                      {p.userId === room.hostId && (
-                        <span className="absolute -top-2 -right-2 text-xl filter drop-shadow-lg" title="Host">👑</span>
-                      )}
-                    </motion.div>
-                  ))}
+                  {room.players.map((p, i) => {
+                    const defaultColors = [
+                      '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4',
+                      '#ec4899', '#84cc16', '#eab308', '#14b8a6', '#6366f1', '#f97316'
+                    ];
+                    const color = p.color || defaultColors[i % defaultColors.length];
+                    const displayName = p.nickname || p.user.username;
+                    return (
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        key={p.userId} 
+                        className="w-16 h-16 rounded-full border-2 border-[#161622] flex items-center justify-center relative z-10 hover:z-20 transition-transform hover:-translate-y-2 cursor-pointer group/avatar shadow-lg"
+                        style={{ backgroundColor: color, boxShadow: `0 0 15px ${color}80` }}
+                      >
+                        <span className="text-2xl font-black text-white drop-shadow-md">{displayName.charAt(0).toUpperCase()}</span>
+                        
+                        {p.userId === room.hostId && (
+                          <span className="absolute -top-2 -right-2 text-xl filter drop-shadow-lg" title="Host">👑</span>
+                        )}
+
+                        {/* Kick Button for Host */}
+                        {isHost && p.userId !== room.hostId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Are you sure you want to kick ${displayName}?`)) {
+                                kickPlayerMutation.mutate(p.userId);
+                              }
+                            }}
+                            disabled={kickPlayerMutation.isPending && kickPlayerMutation.variables === p.userId}
+                            className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity shadow-lg hover:bg-rose-600"
+                            title="Kick Player"
+                          >
+                            <X size={12} strokeWidth={3} />
+                          </button>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                   {Array.from({ length: room.maxPlayers - room.players.length }).map((_, i) => (
                     <div key={`empty-${i}`} className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 bg-black/20 flex items-center justify-center shadow-inner">
                       <span className="text-white/20 text-xl font-black">?</span>
@@ -205,17 +281,28 @@ export default function WaitingRoomPage() {
                 
                 {isHost ? (
                   <div className="space-y-3">
-                    {room.players.length < room.maxPlayers && (
-                      <motion.button 
+                    <div className="flex gap-3">
+                      <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => fillBotsMutation.mutate()}
-                        disabled={fillBotsMutation.isPending}
-                        className="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-black py-3.5 px-6 rounded-2xl border border-white/10 shadow-lg transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="bg-white/5 hover:bg-white/10 text-slate-300 font-black py-3.5 px-4 rounded-2xl border border-white/10 shadow-lg transition-all text-xs uppercase tracking-widest flex items-center justify-center"
+                        title="Room Settings"
                       >
-                        <Bot size={18} className="text-indigo-400" /> {fillBotsMutation.isPending ? "Filling..." : "Fill with Bots"}
+                        <Settings size={18} className="text-slate-400" />
                       </motion.button>
-                    )}
+                      {room.players.length < room.maxPlayers && (
+                        <motion.button 
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => fillBotsMutation.mutate()}
+                          disabled={fillBotsMutation.isPending}
+                          className="flex-1 bg-white/5 hover:bg-white/10 text-slate-300 font-black py-3.5 px-6 rounded-2xl border border-white/10 shadow-lg transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          <Bot size={18} className="text-indigo-400" /> {fillBotsMutation.isPending ? "Filling..." : "Fill with Bots"}
+                        </motion.button>
+                      )}
+                    </div>
                     <motion.button 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -238,49 +325,107 @@ export default function WaitingRoomPage() {
           </div>
 
           {/* Right Column: Settings & Players list */}
-          <div className="lg:col-span-1 bg-[#161622]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col p-6 relative overflow-hidden">
-            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500 left-0" />
-            <h3 className="font-black text-slate-300 mb-6 uppercase tracking-widest text-xs flex items-center gap-2">
+          <div className="lg:col-span-1 glassmorphism rounded-3xl flex flex-col p-6 relative overflow-hidden group hover:border-purple-500/30 transition-all duration-500">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-purple-500/20 transition-all duration-500" />
+            
+            <h3 className="font-black text-slate-300 mb-6 uppercase tracking-widest text-xs flex items-center gap-2 relative z-10">
               <Settings size={14} className="text-purple-400" /> Room Settings
             </h3>
             
-            <div className="space-y-3 mb-8 flex-1">
-              <div className="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
+            <div className="space-y-3 mb-8 flex-1 relative z-10">
+              <div className="flex justify-between items-center p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
                 <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Max Players</span>
-                <span className="text-slate-200 font-black bg-white/5 px-2 py-1 rounded text-sm">{room.maxPlayers}</span>
+                <span className="text-slate-200 font-black text-sm">{room.maxPlayers}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
+              <div className="flex justify-between items-center p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
                 <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Map</span>
-                <span className="text-purple-300 font-black bg-purple-500/10 px-2 py-1 rounded text-sm">Classic</span>
+                <span className="text-purple-400 font-black text-sm capitalize drop-shadow-md">{room.map || "Classic"}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
+              <div className="flex justify-between items-center p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
                 <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Starting Cash</span>
-                <span className="text-emerald-400 font-black bg-emerald-500/10 px-2 py-1 rounded text-sm">$1500</span>
+                <span className="text-emerald-400 font-black text-sm drop-shadow-md">${room.startingCash || 1500}</span>
               </div>
             </div>
 
-            <div>
-              <h4 className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
-                <Users size={12} /> Players ({room.players.length})
+            <div className="relative z-10">
+              <h4 className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Users size={12} /> Roster ({room.players.length})
               </h4>
-              <ul className="space-y-2">
-                {room.players.map(p => (
-                  <li key={p.userId} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/5">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md">
-                      {p.user.username.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-slate-200 font-bold text-sm tracking-wide flex-1 truncate">{p.user.username}</span>
-                    {p.userId === room.hostId && (
-                      <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">HOST</span>
-                    )}
-                  </li>
-                ))}
+              <ul className="space-y-3">
+                {room.players.map((p, i) => {
+                  const defaultColors = [
+                    '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4',
+                    '#ec4899', '#84cc16', '#eab308', '#14b8a6', '#6366f1', '#f97316'
+                  ];
+                  const color = p.color || defaultColors[i % defaultColors.length];
+                  const displayName = p.nickname || p.user.username;
+                  return (
+                    <li key={p.userId} className="flex items-center gap-4 bg-white/5 hover:bg-white/10 p-2.5 rounded-2xl border border-white/5 transition-colors">
+                      <div 
+                        className="w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shadow-md"
+                        style={{ backgroundColor: color }}
+                      >
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col flex-1 truncate">
+                        <span className="text-slate-200 font-bold text-sm tracking-wide truncate">{displayName}</span>
+                        {p.userId === room.hostId && (
+                          <span className="text-[9px] text-amber-400 font-black uppercase tracking-widest leading-none mt-1">Host</span>
+                        )}
+                      </div>
+                      {p.userId === user?.id && (
+                        <button 
+                          onClick={() => setIsProfileOpen(true)}
+                          className="text-xs font-bold bg-white/10 hover:bg-white/20 text-slate-300 px-3 py-1.5 rounded-lg transition-colors border border-white/5"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
 
         </div>
       </div>
+      <RoomSettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        onSave={(settings) => updateSettingsMutation.mutate(settings)}
+        currentSettings={{ maxPlayers: room.maxPlayers, startingCash: room.startingCash, map: room.map }}
+        isSaving={updateSettingsMutation.isPending}
+      />
+      
+      {(() => {
+        const myProfile = room.players.find(p => p.userId === user?.id);
+        if (!myProfile) return null;
+        
+        const defaultColors = [
+          '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4',
+          '#ec4899', '#84cc16', '#eab308', '#14b8a6', '#6366f1', '#f97316'
+        ];
+        
+        const myIndex = room.players.findIndex(p => p.userId === user?.id);
+        const currentColor = myProfile.color || defaultColors[myIndex % defaultColors.length];
+        
+        // Calculate taken colors (excluding my own selected color so I can still see it as selected)
+        const takenColors = room.players
+          .filter(p => p.userId !== user?.id)
+          .map((p, i) => p.color || defaultColors[i % defaultColors.length]);
+        
+        return (
+          <PlayerProfileModal
+            isOpen={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+            onSave={(profile) => updateProfileMutation.mutate(profile)}
+            currentProfile={{ nickname: myProfile.nickname || myProfile.user.username, color: currentColor }}
+            takenColors={takenColors}
+            isSaving={updateProfileMutation.isPending}
+          />
+        );
+      })()}
     </div>
   );
 }

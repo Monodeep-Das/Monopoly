@@ -272,6 +272,7 @@ export interface GameLogEntry {
   type: GameEventType;
   playerId?: string;
   message: string;
+  data?: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -281,6 +282,7 @@ export enum SocketClientEvent {
   ROOM_CREATE = 'room:create',
   ROOM_JOIN = 'room:join',
   ROOM_LEAVE = 'room:leave',
+  ROOM_UPDATE_SETTINGS = 'room:updateSettings',
   GAME_START = 'game:start',
   GAME_ACTION = 'game:action',
   CHAT_SEND = 'chat:send',
@@ -308,9 +310,17 @@ export interface RoomInfo {
   hostId: string;
   status: RoomStatus;
   maxPlayers: number;
+  startingCash: number;
+  map: string;
   players: RoomPlayerInfo[];
   inviteCode: string;
   createdAt: string;
+}
+
+export interface RoomSettings {
+  maxPlayers: number;
+  startingCash: number;
+  map: string;
 }
 
 export interface RoomPlayerInfo {

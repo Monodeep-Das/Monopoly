@@ -148,6 +148,34 @@ export function PropertyModal({ tileIndex, onClose }: PropertyModalProps) {
                   </div>
                 </div>
               )}
+
+              {definition.type === 'railroad' && 'rent' in definition && (
+                <div className="p-3 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Rent</span>
+                    <span className="text-slate-200 font-bold">${definition.rent[0]}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">If 2 Airports are owned</span>
+                    <span className="text-slate-200 font-bold">${definition.rent[1]}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">If 3 Airports are owned</span>
+                    <span className="text-slate-200 font-bold">${definition.rent[2]}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">If 4 Airports are owned</span>
+                    <span className="text-slate-200 font-bold">${definition.rent[3]}</span>
+                  </div>
+                </div>
+              )}
+
+              {definition.type === 'utility' && (
+                <div className="p-3 space-y-2 text-[13px] text-slate-400 text-center leading-relaxed">
+                  If one Utility is owned, rent is <span className="text-slate-200 font-bold">4 times</span> amount shown on dice.<br/>
+                  If both Utilities are owned, rent is <span className="text-slate-200 font-bold">10 times</span> amount shown on dice.
+                </div>
+              )}
               
               <div className="flex justify-between p-3 bg-slate-950">
                 <span className="text-slate-500 font-medium">Mortgage Value</span>

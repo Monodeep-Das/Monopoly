@@ -14,6 +14,40 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
+const Firework = ({ delay, x, y, color, seed }: { delay: number, x: number, y: number, color: string, seed: number }) => {
+  const particles = 12 + Math.floor(pseudoRandom(seed) * 8);
+  return (
+    <div className="absolute pointer-events-none" style={{ left: `${x}vw`, top: `${y}vh` }}>
+      {Array.from({ length: particles }).map((_, i) => {
+        const angle = (i * 360) / particles;
+        const radian = (angle * Math.PI) / 180;
+        const distance = 80 + pseudoRandom(seed + i) * 80;
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
+            animate={{ 
+              x: Math.cos(radian) * distance, 
+              y: Math.sin(radian) * distance + (distance * 0.4), // Gravity effect
+              scale: [0, 1.5, 0],
+              opacity: [1, 1, 0]
+            }}
+            transition={{
+              duration: 1.5 + pseudoRandom(seed + i + 100),
+              delay: delay,
+              ease: "easeOut",
+              repeat: Infinity,
+              repeatDelay: 1 + pseudoRandom(seed + i + 200) * 3
+            }}
+            className="absolute w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: color, boxShadow: `0 0 12px 2px ${color}` }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ gameState }) => {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -79,6 +113,17 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ gameState }) =
         })}
       </div>
 
+      {/* Fireworks Explosion */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <Firework delay={0.2} x={15} y={25} color="#f43f5e" seed={10} />
+        <Firework delay={1.5} x={85} y={30} color="#3b82f6" seed={20} />
+        <Firework delay={0.8} x={25} y={75} color="#10b981" seed={30} />
+        <Firework delay={2.2} x={80} y={80} color="#f59e0b" seed={40} />
+        <Firework delay={2.8} x={50} y={15} color="#8b5cf6" seed={50} />
+        <Firework delay={1.8} x={10} y={50} color="#06b6d4" seed={60} />
+        <Firework delay={3.5} x={90} y={55} color="#ec4899" seed={70} />
+      </div>
+
       {/* Main Content Container */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8, y: 50 }}
@@ -94,7 +139,7 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ gameState }) =
           <Crown className="w-12 h-12 text-white" />
         </motion.div>
 
-        <h1 className="text-4xl md:text-5xl font-black mt-8 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 text-center tracking-tight drop-shadow-lg">
+        <h1 className="text-4xl md:text-5xl font-black mt-8 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-orange-500 text-center tracking-tight drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
           GAME OVER
         </h1>
         
@@ -170,16 +215,17 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ gameState }) =
 
         {/* Return Button */}
         <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          whileHover={{ scale: 1.05 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2, type: "spring", stiffness: 200, damping: 20 }}
+          whileHover={{ scale: 1.05, filter: "brightness(1.1)", boxShadow: "0 0 30px rgba(139, 92, 246, 0.4)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => router.push('/rooms')}
-          className="mt-10 px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.4)] flex items-center gap-2 transition-all hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]"
+          className="mt-10 px-10 py-4 bg-violet-600 text-white font-black text-lg rounded-2xl shadow-[0_0_15px_rgba(139,92,246,0.5)] flex items-center gap-3 transition-all relative overflow-hidden group border border-violet-500/50"
         >
-          <Home className="w-5 h-5" />
-          Return to Lobby
+          <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12" />
+          <Home className="w-6 h-6" strokeWidth={2.5} />
+          <span>Return to Lobby</span>
         </motion.button>
 
       </motion.div>

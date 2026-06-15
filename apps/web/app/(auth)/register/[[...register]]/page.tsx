@@ -15,7 +15,7 @@ export default function RegisterPage() {
 
       <div className="relative z-10 text-center mb-8">
         <h1 className="text-5xl font-black bg-gradient-to-br from-indigo-400 to-purple-400 text-transparent bg-clip-text mb-2 tracking-tight">
-          RichUp
+          Monopoly
         </h1>
         <p className="text-slate-400 font-medium">Create your account</p>
       </div>

@@ -11,21 +11,28 @@ import { IdleWarningTimer } from "@/features/game/components/IdleWarningTimer";
 import { AuctionModal } from "@/features/game/components/AuctionModal";
 import { PropertyModal } from "@/features/game/components/PropertyModal";
 import { GameOverOverlay } from "@/features/game/components/GameOverOverlay";
+import { LedgerModal } from "@/features/game/components/LedgerModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dice3D } from "@/features/game/components/Dice3D";
-import { Dices, SkipForward } from "lucide-react";
+import { 
+  Dices, SkipForward, Coins, Ticket, ReceiptText, 
+  Footprints, Flag, Home, Receipt, Hammer, Lock, Unlock, 
+  Gift, Sparkles, Siren, Key, Megaphone, BadgeDollarSign, 
+  Trophy, Handshake, CheckCircle2, XCircle, HeartCrack, 
+  PlaySquare, Gamepad2, Medal, AlertTriangle, ArrowDownCircle, Info, Eye
+} from "lucide-react";
 import { getTileRect, Point } from '@/features/game/utils/board-math';
-import { playPurchaseSound } from '@/features/game/utils/audio';
+import { playPurchaseSound, playDebitSound } from '@/features/game/utils/audio';
 
 // ─── Slide-in Card Wrapper ───
 function OverlayCard({ children, borderColor = "#6366f1" }: { children: React.ReactNode; borderColor?: string }) {
   return (
     <motion.div
-      initial={{ scale: 0.85, opacity: 0, y: 15 }}
+      initial={{ scale: 0.5, opacity: 0, y: 20 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ scale: 0.85, opacity: 0, y: -10 }}
-      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-      className="bg-[#1a1a2e]/95 backdrop-blur-lg px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-3 text-center mb-3 w-full max-w-xs"
+      exit={{ scale: 0, opacity: 0, transition: { duration: 0.3, ease: "backIn" } }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className="bg-[#1a1a2e]/95 backdrop-blur-lg px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-3 text-center mb-3 w-full max-w-xs origin-center"
       style={{ border: `1.5px solid ${borderColor}50` }}
     >
       {children}
@@ -46,12 +53,13 @@ function PulseDot({ color }: { color: string }) {
 export default function GamePage({ params: paramsPromise }: { params: Promise<{ roomId: string }> }) {
   const params = use(paramsPromise);
   const router = useRouter();
-  const { gameState, dispatchAction, socket, isConnected, resetGameState } = useGameStore();
+  const { gameState, dispatchAction, socket, isConnected, resetGameState, spectators } = useGameStore();
   const { user } = useAuthStore();
 
   const prevPropertiesRef = useRef(gameState?.properties || []);
 
   const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showLedger, setShowLedger] = useState(false);
   const [selectedPropertyTile, setSelectedPropertyTile] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -62,11 +70,24 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
   useEffect(() => {
     if (isConnected && socket) {
       socket.emit("join_room", { roomId: params.roomId });
+      
+      const handleSpectators = (spectators: any) => {
+        useGameStore.getState().setSpectators(spectators);
+      };
+      
+      socket.on("spectators_updated", handleSpectators);
+      
+      return () => {
+        socket.off("spectators_updated", handleSpectators);
+      };
     }
+  }, [isConnected, socket, params.roomId]);
+
+  useEffect(() => {
     return () => {
       resetGameState();
     };
-  }, [isConnected, socket, params.roomId, resetGameState]);
+  }, [resetGameState]);
 
   // Auto-scroll activity feed (newest at top)
   useEffect(() => {
@@ -108,6 +129,31 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
       prevPropertiesRef.current = gameState.properties;
     }
   }, [gameState?.properties]);
+
+  const prevPlayersRef = useRef(gameState?.players || []);
+
+  // Hook to detect money debits
+  useEffect(() => {
+    if (gameState) {
+      const prevPlayers = prevPlayersRef.current;
+      const currPlayers = gameState.players;
+      
+      let wasDebited = false;
+      for (const curr of currPlayers) {
+        const prev = prevPlayers.find(p => p.id === curr.id);
+        if (prev && curr.cash < prev.cash) {
+          wasDebited = true;
+          break;
+        }
+      }
+      
+      if (wasDebited) {
+        playDebitSound();
+      }
+      
+      prevPlayersRef.current = currPlayers;
+    }
+  }, [gameState?.players]);
 
   // Auto-open trade modal when a trade is proposed to the current user
   useEffect(() => {
@@ -165,8 +211,7 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
       <aside className="w-56 bg-[#12111f] border-r border-[#2d2b55]/60 flex flex-col shrink-0">
         {/* Logo */}
         <div className="px-4 py-3 border-b border-[#2d2b55]/60 flex items-center gap-1.5">
-          <span className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text tracking-tight">RICHUP</span>
-          <span className="text-xs text-slate-600 font-bold">.io</span>
+          <span className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text tracking-tight">MONOPOLY</span>
         </div>
 
         {/* Share link */}
@@ -270,7 +315,7 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
               className="pointer-events-auto flex flex-col items-center gap-1"
               style={{ width: '52%', maxWidth: '400px', maxHeight: '58%' }}
             >
-              <AnimatePresence>
+              <AnimatePresence mode="wait">
                 {/* Dice */}
                 <motion.div
                   key="dice"
@@ -301,11 +346,10 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
                   <motion.button
                     key="roll"
                     layout
-                    initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                    initial={{ opacity: 0, scale: 0 }}
                     animate={{
                       opacity: 1,
                       scale: 1,
-                      y: 0,
                       boxShadow: [
                         '0 8px 20px rgba(124, 58, 237, 0.25), 0 0 0 0 rgba(139, 92, 246, 0.5)',
                         '0 8px 20px rgba(124, 58, 237, 0.25), 0 0 0 12px rgba(139, 92, 246, 0)',
@@ -317,7 +361,7 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
                       y: { type: "spring", stiffness: 400, damping: 25 },
                       boxShadow: { duration: 1.5, repeat: Infinity, ease: "easeOut" }
                     }}
-                    exit={{ opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2 } }}
+                    exit={{ opacity: 0, scale: 0, transition: { duration: 0.2, ease: "backIn" } }}
                     whileHover={{ y: -1, filter: "brightness(1.05)" }}
                     whileTap={{ y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(124, 58, 237, 0.2), 0 0 0 0 rgba(139, 92, 246, 0)" }}
                     onClick={handleRollDice}
@@ -332,23 +376,22 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
                 )}
 
                 {/* End Turn */}
-                {isMyTurn && (gameState.phase === 'ACTION' || gameState.phase === 'LANDED' || gameState.phase === 'TRADE') && (
+                {isMyTurn && (gameState.phase === 'ACTION' || gameState.phase === 'TRADE') && (
                   <motion.button
                     key="end-turn"
                     layout
-                    initial={{ opacity: 0, scale: 0.9, y: 15 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2 } }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0, transition: { duration: 0.2, ease: "backIn" } }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    whileHover={gameState.phase !== 'ACTION' && gameState.phase !== 'TRADE' ? {} : { y: -1, filter: "brightness(1.05)" }}
-                    whileTap={gameState.phase !== 'ACTION' && gameState.phase !== 'TRADE' ? {} : { y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(124, 58, 237, 0.2)" }}
+                    whileHover={{ y: -1, filter: "brightness(1.05)" }}
+                    whileTap={{ y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(124, 58, 237, 0.2)" }}
                     onClick={handleEndTurn}
-                    disabled={gameState.phase !== 'ACTION' && gameState.phase !== 'TRADE'}
                     style={{
                       background: 'linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%)',
                       boxShadow: '0 8px 20px rgba(124, 58, 237, 0.25)'
                     }}
-                    className="h-[44px] min-w-[160px] rounded-[11px] flex items-center justify-center gap-2 mb-2 text-white font-semibold text-[16px] transition-transform duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="h-[44px] min-w-[160px] rounded-[11px] flex items-center justify-center gap-2 mb-2 text-white font-semibold text-[16px] transition-transform duration-100"
                   >
                     <SkipForward size={20} className="text-white" strokeWidth={2.5} />
                     End Turn
@@ -357,35 +400,89 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
 
                 {/* Jail */}
                 {isMyTurn && gameState.phase === 'JAIL_DECISION' && currentPlayer?.inJail && (
-                  <OverlayCard borderColor="#f97316">
+                  <OverlayCard key="jail-card" borderColor="#f97316">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">⚠️</span>
                       <span className="text-xs font-black text-orange-400 tracking-wider uppercase">In Jail — Turn {(currentPlayer?.jailTurns ?? 0) + 1}/3</span>
                     </div>
-                    <div className="flex gap-2 w-full">
+                    <div className="flex gap-2 w-full mt-2">
                       <motion.button
-                        whileTap={{ scale: 0.93 }}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{
+                          opacity: 1, scale: 1, y: 0,
+                          boxShadow: [
+                            '0 8px 20px rgba(99, 102, 241, 0.25), 0 0 0 0 rgba(99, 102, 241, 0.5)',
+                            '0 8px 20px rgba(99, 102, 241, 0.25), 0 0 0 8px rgba(99, 102, 241, 0)',
+                          ]
+                        }}
+                        transition={{
+                          opacity: { duration: 0.2 },
+                          scale: { type: "spring", stiffness: 400, damping: 25 },
+                          y: { type: "spring", stiffness: 400, damping: 25 },
+                          boxShadow: { duration: 1.5, repeat: Infinity, ease: "easeOut" }
+                        }}
+                        exit={{ opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2 } }}
+                        whileHover={{ y: -1, filter: "brightness(1.05)" }}
+                        whileTap={{ y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(99, 102, 241, 0.2), 0 0 0 0 rgba(99, 102, 241, 0)" }}
                         onClick={() => dispatchAction({ type: 'ROLL_FOR_JAIL' })}
-                        className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-bold py-2.5 rounded-lg text-xs shadow-lg"
+                        style={{ background: 'linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)' }}
+                        className="h-[44px] flex-1 rounded-[11px] flex items-center justify-center gap-1.5 text-white font-semibold text-[14px] transition-transform duration-100"
                       >
-                        🎲 Roll Doubles
+                        <Dices size={18} className="text-white" strokeWidth={2.5} /> Roll Doubles
                       </motion.button>
                       <motion.button
-                        whileTap={{ scale: 0.93 }}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{
+                          opacity: 1, scale: 1, y: 0,
+                          boxShadow: [
+                            '0 8px 20px rgba(249, 115, 22, 0.25), 0 0 0 0 rgba(249, 115, 22, 0.5)',
+                            '0 8px 20px rgba(249, 115, 22, 0.25), 0 0 0 8px rgba(249, 115, 22, 0)',
+                          ]
+                        }}
+                        transition={{
+                          opacity: { duration: 0.2 },
+                          scale: { type: "spring", stiffness: 400, damping: 25 },
+                          y: { type: "spring", stiffness: 400, damping: 25 },
+                          boxShadow: { duration: 1.5, repeat: Infinity, ease: "easeOut" }
+                        }}
+                        exit={{ opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2 } }}
+                        whileHover={ (currentPlayer?.cash ?? 0) < 50 ? {} : { y: -1, filter: "brightness(1.05)" } }
+                        whileTap={ (currentPlayer?.cash ?? 0) < 50 ? {} : { y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(249, 115, 22, 0.2), 0 0 0 0 rgba(249, 115, 22, 0)" } }
                         onClick={() => dispatchAction({ type: 'PAY_JAIL_BAIL' })}
                         disabled={(currentPlayer?.cash ?? 0) < 50}
-                        className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-2.5 rounded-lg text-xs shadow-lg disabled:opacity-40"
+                        style={{ background: 'linear-gradient(180deg, #f97316 0%, #ea580c 100%)' }}
+                        className="h-[44px] flex-1 rounded-[11px] flex items-center justify-center gap-1.5 text-white font-semibold text-[14px] transition-transform duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        💰 Pay $50
+                        <Coins size={18} className="text-white" strokeWidth={2.5} /> Pay $50
                       </motion.button>
                     </div>
                     {(currentPlayer?.getOutOfJailFreeCards ?? 0) > 0 && (
                       <motion.button
-                        whileTap={{ scale: 0.93 }}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{
+                          opacity: 1, scale: 1, y: 0,
+                          boxShadow: [
+                            '0 8px 20px rgba(16, 185, 129, 0.25), 0 0 0 0 rgba(16, 185, 129, 0.5)',
+                            '0 8px 20px rgba(16, 185, 129, 0.25), 0 0 0 8px rgba(16, 185, 129, 0)',
+                          ]
+                        }}
+                        transition={{
+                          opacity: { duration: 0.2 },
+                          scale: { type: "spring", stiffness: 400, damping: 25 },
+                          y: { type: "spring", stiffness: 400, damping: 25 },
+                          boxShadow: { duration: 1.5, repeat: Infinity, ease: "easeOut" }
+                        }}
+                        exit={{ opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2 } }}
+                        whileHover={{ y: -1, filter: "brightness(1.05)" }}
+                        whileTap={{ y: 1, filter: "brightness(1)", boxShadow: "0 4px 10px rgba(16, 185, 129, 0.2), 0 0 0 0 rgba(16, 185, 129, 0)" }}
                         onClick={() => dispatchAction({ type: 'USE_JAIL_CARD' })}
-                        className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-2.5 rounded-lg text-xs shadow-lg"
+                        style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}
+                        className="h-[44px] w-full mt-2 rounded-[11px] flex items-center justify-center gap-1.5 text-white font-semibold text-[14px] transition-transform duration-100"
                       >
-                        🃏 Use Jail Card
+                        <Ticket size={18} className="text-white" strokeWidth={2.5} /> Use Jail Card
                       </motion.button>
                     )}
                   </OverlayCard>
@@ -393,7 +490,7 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
 
                 {/* Buy / Auction */}
                 {isMyTurn && gameState.phase === 'LANDED' && currentPlayer && (
-                  <OverlayCard borderColor="#6366f1">
+                  <OverlayCard key="buy-card" borderColor="#6366f1">
                     <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">Unowned Property</span>
                     <h3 className="text-lg font-black text-white">{BOARD_TILES[currentPlayer.position]?.name}</h3>
                     {(BOARD_TILES[currentPlayer.position] as any)?.price && (
@@ -422,7 +519,7 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
 
                 {/* Bankruptcy */}
                 {isMyTurn && gameState.phase === 'BANKRUPT_RESOLUTION' && currentPlayer && (
-                  <OverlayCard borderColor="#ef4444">
+                  <OverlayCard key="bankrupt-card" borderColor="#ef4444">
                     <span className="text-lg">🚨</span>
                     <span className="text-xs font-black text-rose-400 tracking-wider uppercase">In Debt!</span>
                     <p className="text-slate-400 text-[11px] text-center">You have a negative balance. Mortgage properties, sell houses, or trade to clear your debt.</p>
@@ -447,11 +544,11 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
               {/* Activity Feed — lightweight event ticker */}
               <div
                 ref={feedRef}
-                className="w-[280px] max-h-[140px] overflow-y-auto mx-auto mt-4 [&::-webkit-scrollbar]:hidden"
+                className="w-[280px] max-h-[220px] overflow-y-auto mx-auto mt-4 pr-1 [&::-webkit-scrollbar]:hidden"
                 style={{
                   scrollbarWidth: 'none',
-                  maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)'
+                  maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)'
                 }}
               >
                 {(() => {
@@ -460,41 +557,47 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
                     .filter(e => e.type !== 'CHAT_MESSAGE')
                     .filter(e => !(e.type === 'ERROR' && e.message === 'Not your turn'))
                     .reverse()
-                    .slice(0, 8);
-                  const total = entries.length;
+                    .slice(0, 40);
                   const getEventIcon = (type: string) => {
+                    const iconProps = { size: 14, strokeWidth: 2.5, className: "opacity-90" };
                     switch (type) {
-                      case 'DICE_ROLLED': return '🎲';
-                      case 'PLAYER_MOVED': return '👣';
-                      case 'PLAYER_PASSED_GO': return '🏁';
-                      case 'PROPERTY_PURCHASED': return '🏠';
-                      case 'RENT_PAID': return '💰';
-                      case 'TAX_PAID': return '📋';
-                      case 'HOUSE_BUILT': return '🏗️';
-                      case 'HOUSE_SOLD': return '🔨';
-                      case 'PROPERTY_MORTGAGED': return '🏦';
-                      case 'PROPERTY_UNMORTGAGED': return '🔓';
-                      case 'CARD_DRAWN': return '🎁';
-                      case 'CARD_EFFECT_APPLIED': return '✨';
-                      case 'SENT_TO_JAIL': return '🚓';
-                      case 'RELEASED_FROM_JAIL': return '🔑';
-                      case 'AUCTION_STARTED': return '📢';
-                      case 'AUCTION_BID_PLACED': return '💎';
-                      case 'AUCTION_WON': return '🏆';
-                      case 'TRADE_PROPOSED': return '🤝';
-                      case 'TRADE_ACCEPTED': return '✅';
-                      case 'TRADE_DECLINED': return '❌';
-                      case 'PLAYER_BANKRUPT': return '💀';
-                      case 'TURN_CHANGED': return '▶';
-                      case 'GAME_STARTED': return '🎮';
-                      case 'GAME_OVER': return '🏅';
-                      case 'ERROR': return '⚠';
-                      default: return '·';
+                      case 'DICE_ROLLED': return <Dices {...iconProps} className="text-blue-400" />;
+                      case 'PLAYER_MOVED': return <Footprints {...iconProps} className="text-slate-400" />;
+                      case 'PLAYER_PASSED_GO': return <Flag {...iconProps} className="text-emerald-400" />;
+                      case 'PROPERTY_PURCHASED': return <Home {...iconProps} className="text-fuchsia-400" />;
+                      case 'RENT_PAID': return <Coins {...iconProps} className="text-amber-400" />;
+                      case 'TAX_PAID': return <Receipt {...iconProps} className="text-rose-400" />;
+                      case 'HOUSE_BUILT': return <Hammer {...iconProps} className="text-teal-400" />;
+                      case 'HOUSE_SOLD': return <ArrowDownCircle {...iconProps} className="text-rose-400" />;
+                      case 'PROPERTY_MORTGAGED': return <Lock {...iconProps} className="text-slate-500" />;
+                      case 'PROPERTY_UNMORTGAGED': return <Unlock {...iconProps} className="text-emerald-400" />;
+                      case 'CARD_DRAWN': return <Gift {...iconProps} className="text-purple-400" />;
+                      case 'CARD_EFFECT_APPLIED': return <Sparkles {...iconProps} className="text-yellow-400" />;
+                      case 'SENT_TO_JAIL': return <Siren {...iconProps} className="text-red-500" />;
+                      case 'RELEASED_FROM_JAIL': return <Key {...iconProps} className="text-amber-300" />;
+                      case 'AUCTION_STARTED': return <Megaphone {...iconProps} className="text-orange-400" />;
+                      case 'AUCTION_BID_PLACED': return <BadgeDollarSign {...iconProps} className="text-emerald-400" />;
+                      case 'AUCTION_WON': return <Trophy {...iconProps} className="text-yellow-400" />;
+                      case 'TRADE_PROPOSED': return <Handshake {...iconProps} className="text-blue-400" />;
+                      case 'TRADE_ACCEPTED': return <CheckCircle2 {...iconProps} className="text-emerald-500" />;
+                      case 'TRADE_DECLINED': return <XCircle {...iconProps} className="text-rose-500" />;
+                      case 'PLAYER_BANKRUPT': return <HeartCrack {...iconProps} className="text-slate-600" />;
+                      case 'TURN_CHANGED': return <PlaySquare {...iconProps} className="text-indigo-400" />;
+                      case 'GAME_STARTED': return <Gamepad2 {...iconProps} className="text-fuchsia-500" />;
+                      case 'GAME_OVER': return <Medal {...iconProps} className="text-yellow-400" />;
+                      case 'ERROR': return <AlertTriangle {...iconProps} className="text-red-500" />;
+                      default: return <Info {...iconProps} className="text-slate-500" />;
                     }
                   };
                   return entries.map((entry, i) => {
-                    // Opacity: newest (last) = 1, older = fading
-                    const opacity = i === 0 ? 1 : i === 1 ? 0.8 : i === 2 ? 0.65 : i <= 4 ? 0.45 : 0.3;
+                    const opacity = i === 0 ? 1 : 0.9;
+                    
+                    // Check if a player's name is mentioned in the message
+                    // We sort by name length descending to match the longest name first (e.g. "Bob" vs "BobTheBuilder")
+                    const mentionedPlayer = [...gameState.players]
+                      .sort((a, b) => b.name.length - a.name.length)
+                      .find(p => entry.message.includes(p.name));
+
                     return (
                       <motion.div
                         layout
@@ -502,11 +605,26 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity, y: 0, scale: 1 }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // smooth, slow ease-out
-                        className="flex items-center gap-1.5 py-[3px]"
+                        className="flex items-start justify-start gap-2 py-[4px] px-2"
                         style={{ opacity }}
                       >
-                        <span className="text-[12px] shrink-0 leading-none">{getEventIcon(entry.type)}</span>
-                        <span className="text-[13px] leading-[1.3] text-white/75 truncate">
+                        <span className="shrink-0 leading-none mt-[2px]">
+                          {mentionedPlayer ? (
+                            <div 
+                              className="w-[15px] h-[15px] rounded-full flex items-center justify-center shrink-0 border-[1.5px] border-[#0f0e1a] shadow-sm relative overflow-hidden" 
+                              style={{ backgroundColor: mentionedPlayer.color || '#cbd5e1', boxShadow: `0 1px 3px ${mentionedPlayer.color}60` }}
+                              title={mentionedPlayer.name}
+                            >
+                              <div className="absolute inset-0 top-[-15%] rounded-full border border-white/30 scale-75 pointer-events-none" />
+                              <span className="text-[9px] font-black text-white leading-none" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}>
+                                {mentionedPlayer.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          ) : (
+                            getEventIcon(entry.type)
+                          )}
+                        </span>
+                        <span className="text-[14px] leading-[1.3] text-white/80 break-words text-left font-medium max-w-full">
                           {entry.message}
                         </span>
                       </motion.div>
@@ -545,8 +663,15 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
       <aside className="w-64 bg-[#12111f] border-l border-[#2d2b55]/60 flex flex-col shrink-0 overflow-hidden">
 
         {/* Players Header */}
-        <div className="px-3 py-2 border-b border-[#2d2b55]/60">
+        <div className="px-3 py-2 border-b border-[#2d2b55]/60 flex items-center justify-between">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Players</span>
+          <button 
+            onClick={() => setShowLedger(true)}
+            className="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-bold tracking-wider uppercase bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors"
+          >
+            <ReceiptText size={12} />
+            Ledger
+          </button>
         </div>
 
         {/* Players */}
@@ -609,6 +734,25 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
             Bankrupt
           </motion.button>
         </div>
+
+        {/* Spectators */}
+        {spectators && spectators.length > 0 && (
+          <div className="border-b border-[#2d2b55]/60 bg-[#161426]">
+            <div className="px-3 py-2 flex items-center justify-between border-b border-[#2d2b55]/30">
+              <span className="text-[10px] font-bold text-fuchsia-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Eye size={12} /> Spectating ({spectators.length})
+              </span>
+            </div>
+            <div className="px-3 py-2.5 space-y-1.5">
+              {spectators.map(s => (
+                <div key={s.id} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500/60 shadow-[0_0_5px_rgba(217,70,239,0.5)]"></span>
+                  {s.username}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Trades */}
         <div className="border-b border-[#2d2b55]/60">
@@ -706,6 +850,12 @@ export default function GamePage({ params: paramsPromise }: { params: Promise<{ 
         )}
       </aside>
 
+      <LedgerModal
+        isOpen={showLedger}
+        onClose={() => setShowLedger(false)}
+        gameState={gameState}
+        currentPlayerId={user?.id || null}
+      />
       {showTradeModal && (
         <TradeModal onClose={() => {
           // If there's still a pending trade when closing, auto-decline it

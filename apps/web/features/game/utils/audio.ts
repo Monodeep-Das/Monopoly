@@ -99,3 +99,40 @@ export function playPurchaseSound() {
     console.error("Audio error", e);
   }
 }
+
+export function playDebitSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const t = ctx.currentTime;
+    
+    // Short, downward pitch drop for money loss
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    
+    // Slide down from F4 to C4
+    osc.frequency.setValueAtTime(349.23, t);
+    osc.frequency.exponentialRampToValueAtTime(261.63, t + 0.15);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+    gain.gain.linearRampToValueAtTime(0, t + 0.17);
+
+    // Add a lowpass filter to make it sound more like a dull thud/blip
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1000, t);
+    filter.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(t);
+    osc.stop(t + 0.17);
+  } catch (e) {
+    console.error("Audio error", e);
+  }
+}

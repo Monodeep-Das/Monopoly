@@ -49,27 +49,32 @@ export class Game {
   private chanceDeck: CardDeck;
   private communityChestDeck: CardDeck;
 
-  constructor(playerSetup: Array<{ id: string; name: string; color: string }>) {
-    if (playerSetup.length < 2 || playerSetup.length > 6) {
-      throw new Error('Game requires 2-6 players');
+  constructor(
+    playerSetup: Array<{ id: string; name: string; color: string }>,
+    options?: { startingCash?: number }
+  ) {
+    if (playerSetup.length < 2 || playerSetup.length > 8) {
+      throw new Error('Game requires 2-8 players');
     }
 
     this.chanceDeck = new CardDeck(CHANCE_CARDS);
     this.communityChestDeck = new CardDeck(COMMUNITY_CHEST_CARDS);
+
+    const initialCash = options?.startingCash ?? STARTING_CASH;
 
     const players: PlayerState[] = playerSetup.map((p) => ({
       id: p.id,
       name: p.name,
       color: p.color,
       position: 0,
-      cash: STARTING_CASH,
+      cash: initialCash,
       properties: [],
       inJail: false,
       jailTurns: 0,
       getOutOfJailFreeCards: 0,
       bankrupt: false,
       disconnected: false,
-      totalAssetValue: STARTING_CASH,
+      totalAssetValue: initialCash,
     }));
 
     // Initialize all ownable properties
@@ -781,7 +786,7 @@ export class Game {
     }
 
     const proposer = this.getPlayer(playerId);
-    if (proposer.cash < trade.offerCash) {
+    if (trade.offerCash > 0 && proposer.cash < trade.offerCash) {
       return [this.errorEvent(playerId, 'Not enough cash for offered amount')];
     }
 
@@ -811,6 +816,10 @@ export class Game {
 
     const from = this.getPlayer(trade.fromPlayerId);
     const to = this.getPlayer(trade.toPlayerId);
+
+    if (trade.requestCash > 0 && to.cash < trade.requestCash) {
+      return [this.errorEvent(playerId, 'Not enough cash to accept trade')];
+    }
 
     // Transfer cash
     from.cash -= trade.offerCash;
@@ -882,25 +891,20 @@ export class Game {
 
     player.bankrupt = true;
 
-    // Transfer all assets to creditor (or bank if creditor is 'bank')
-    if (creditorId === 'bank') {
-      // Properties go back to bank
-      for (const tileIdx of player.properties) {
-        const prop = this.getPropertyState(tileIdx);
-        prop.ownerId = null;
-        prop.houses = 0;
-        prop.isMortgaged = false;
-      }
-    } else {
+    // Properties always go back to the bank, even if bankrupt to another player
+    for (const tileIdx of player.properties) {
+      const prop = this.getPropertyState(tileIdx);
+      prop.ownerId = null;
+      prop.houses = 0;
+      prop.isMortgaged = false;
+    }
+    
+    if (creditorId !== 'bank') {
       const creditor = this.getPlayer(creditorId);
-      // Transfer remaining cash
-      creditor.cash += player.cash;
-      // Transfer properties
-      for (const tileIdx of player.properties) {
-        const prop = this.getPropertyState(tileIdx);
-        prop.ownerId = creditorId;
-        creditor.properties.push(tileIdx);
-      }
+      // We explicitly DO NOT deduct player.cash from creditor.cash anymore.
+      // The creditor already received the full rent during the RENT_PAID event,
+      // and we are effectively using the sale of the properties to the bank 
+      // to fund the player's deficit, paying the creditor in full.
       this.updateAssetValue(creditor);
     }
 
@@ -930,6 +934,13 @@ export class Game {
       // Advance turn if the bankrupt player was current
       if (this.state.players[this.state.currentPlayerIndex].id === playerId) {
         this.advanceTurn(events);
+      } else {
+        // If we didn't advance the turn (e.g. someone went bankrupt on another player's turn),
+        // we must check if anyone else is still bankrupt. If not, restore phase to ACTION.
+        const anyoneElseBankrupt = this.state.players.some(p => !p.bankrupt && p.cash < 0);
+        if (!anyoneElseBankrupt && this.state.phase === 'BANKRUPT_RESOLUTION') {
+          this.state.phase = 'ACTION';
+        }
       }
     }
 
@@ -1390,6 +1401,7 @@ export class Game {
       type,
       playerId,
       message,
+      data: event.data,
       timestamp: event.timestamp,
     });
 

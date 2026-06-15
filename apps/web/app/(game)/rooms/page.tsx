@@ -2,12 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { roomsApi } from "@/features/rooms/api";
+import { fetchApi } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/store/auth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { LogOut, User, Trophy, Plus, RefreshCw, Trash2, ArrowRight } from "lucide-react";
+import { LogOut, User, Trophy, Plus, RefreshCw, Trash2, ArrowRight, Eye } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
+import { RoomSettingsModal } from "@/features/rooms/components/RoomSettingsModal";
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -19,6 +21,12 @@ export default function LobbyPage() {
     queryKey: ["rooms"],
     queryFn: roomsApi.getRooms,
     refetchInterval: 5000, // Poll every 5s
+  });
+
+  const { data: onlinePlayers } = useQuery({
+    queryKey: ["onlinePlayers"],
+    queryFn: () => fetchApi<{ count: number }>('/stats/online-players'),
+    refetchInterval: 10000,
   });
 
   const createRoomMutation = useMutation({
@@ -47,11 +55,28 @@ export default function LobbyPage() {
   const handleCreateRoom = () => {
     if (!user) return router.push("/login");
     setIsCreating(true);
-    createRoomMutation.mutate({ name: `${user.username}'s Game`, maxPlayers: 4 });
+  };
+
+  const handleSaveSettings = (settings: { maxPlayers: number; startingCash: number; map: string }) => {
+    if (!user) return;
+    createRoomMutation.mutate({ 
+      name: `${user.username}'s Game`, 
+      maxPlayers: settings.maxPlayers,
+      startingCash: settings.startingCash,
+      map: settings.map
+    });
+    setIsCreating(false);
   };
 
   return (
     <div className="relative min-h-screen bg-[#111118] text-slate-100 p-8 font-sans overflow-hidden">
+      <RoomSettingsModal 
+        isOpen={isCreating} 
+        onClose={() => setIsCreating(false)} 
+        onSave={handleSaveSettings}
+        currentSettings={{ maxPlayers: 4, startingCash: 1500, map: "classic" }}
+        isSaving={createRoomMutation.isPending}
+      />
       {/* Premium Background Layer */}
       <div className="absolute inset-0 bg-[#0f0f13] z-0" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(56,31,118,0.25)_0%,rgba(0,0,0,0)_70%)] pointer-events-none z-0" />
@@ -105,27 +130,29 @@ export default function LobbyPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleCreateRoom}
-              disabled={createRoomMutation.isPending || isCreating}
+              disabled={createRoomMutation.isPending}
               className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black py-4 px-6 rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-sm border border-purple-400/30"
             >
               <Plus size={20} />
               {createRoomMutation.isPending ? "Creating..." : "Create Room"}
             </motion.button>
             
-            <div className="bg-[#161622]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
-              <h3 className="font-black text-slate-400 mb-6 uppercase tracking-widest text-xs flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            <div className="glassmorphism rounded-3xl p-6 relative group hover:border-indigo-500/30 transition-all duration-500">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+              <h3 className="font-black text-slate-300 mb-6 uppercase tracking-widest text-xs flex items-center gap-2 relative z-10">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
                 Quick Stats
               </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg border border-white/5">
-                  <span className="text-slate-400 font-bold text-sm uppercase tracking-wider">Open Rooms</span>
-                  <span className="text-indigo-300 font-black text-xl drop-shadow-[0_0_8px_rgba(165,180,252,0.5)]">{rooms?.length || 0}</span>
+              <div className="space-y-4 relative z-10">
+                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
+                  <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Open Rooms</span>
+                  <span className="text-indigo-400 font-black text-2xl drop-shadow-md">{rooms?.length || 0}</span>
                 </div>
-                <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg border border-white/5">
-                  <span className="text-slate-400 font-bold text-sm uppercase tracking-wider">Players Online</span>
-                  <span className="text-emerald-300 font-black text-xl drop-shadow-[0_0_8px_rgba(110,231,183,0.5)]">--</span>
+                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
+                  <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Players Online</span>
+                  <span className="text-emerald-400 font-black text-2xl drop-shadow-md">
+                    {onlinePlayers?.count ?? "--"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -176,18 +203,25 @@ export default function LobbyPage() {
                             {room.name}
                           </h3>
                           <div className="flex items-center gap-4 mt-3 text-sm">
-                            <span className="flex items-center gap-2 text-slate-300 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 font-bold shadow-inner">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                              {room.players.length} / {room.maxPlayers} Players
-                            </span>
+                            {room.status === 'IN_GAME' ? (
+                              <span className="flex items-center gap-2 text-fuchsia-300 bg-black/30 px-3 py-1.5 rounded-lg border border-fuchsia-500/20 font-bold shadow-inner">
+                                <span className="w-2 h-2 rounded-full bg-fuchsia-500 animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]"></span>
+                                In Progress
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2 text-slate-300 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10 font-bold shadow-inner">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                                {room.players.length} / {room.maxPlayers} Players
+                              </span>
+                            )}
                             <span className="text-slate-500 uppercase tracking-widest text-xs font-black">
-                              ID: {room.id.substring(0, 8)}
+                              ID: {room.id}
                             </span>
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-3">
-                          {room.hostId === user?.id && (
+                          {room.hostId === user?.id && room.status === 'WAITING' && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -202,19 +236,29 @@ export default function LobbyPage() {
                               <Trash2 size={18} />
                             </button>
                           )}
-                          <button
-                            onClick={() => {
-                              if (!user) return router.push("/login");
-                              joinRoomMutation.mutate(room.id);
-                            }}
-                            disabled={joinRoomMutation.isPending || room.players.length >= room.maxPlayers}
-                            className="bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white font-black uppercase tracking-widest py-2.5 px-8 rounded-xl transition-all border border-indigo-500/30 disabled:opacity-50 disabled:hover:bg-indigo-500/10 disabled:hover:text-indigo-400 flex items-center gap-2 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
-                          >
-                            {joinRoomMutation.variables === room.id && joinRoomMutation.isPending 
-                              ? "Joining..." 
-                              : "Join"}
-                            <ArrowRight size={18} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                          </button>
+                          
+                          {room.status === 'IN_GAME' ? (
+                            <button
+                              onClick={() => router.push(`/game/${room.id}`)}
+                              className="bg-fuchsia-500/10 hover:bg-fuchsia-500 text-fuchsia-400 hover:text-white font-black uppercase tracking-widest py-2.5 px-8 rounded-xl transition-all border border-fuchsia-500/30 flex items-center gap-2 group-hover:shadow-[0_0_15px_rgba(217,70,239,0.3)]"
+                            >
+                              <Eye size={18} /> Spectate
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (!user) return router.push("/login");
+                                joinRoomMutation.mutate(room.id);
+                              }}
+                              disabled={joinRoomMutation.isPending || room.players.length >= room.maxPlayers}
+                              className="bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white font-black uppercase tracking-widest py-2.5 px-8 rounded-xl transition-all border border-indigo-500/30 disabled:opacity-50 disabled:hover:bg-indigo-500/10 disabled:hover:text-indigo-400 flex items-center gap-2 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                            >
+                              {joinRoomMutation.variables === room.id && joinRoomMutation.isPending 
+                                ? "Joining..." 
+                                : "Join"}
+                              <ArrowRight size={18} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                            </button>
+                          )}
                         </div>
                       </motion.li>
                     ))}

@@ -8,11 +8,11 @@ export class RoomsController {
 
   @UseGuards(ClerkAuthGuard)
   @Post()
-  async createRoom(@Request() req: any, @Body() body: { name?: string; maxPlayers?: number }) {
+  async createRoom(@Request() req: any, @Body() body: { name?: string; maxPlayers?: number; startingCash?: number; map?: string }) {
     const hostId = req.user.id;
     const name = body.name || `${req.user.username}'s Game`;
     const maxPlayers = body.maxPlayers || 4;
-    return this.roomsService.createRoom(hostId, name, maxPlayers);
+    return this.roomsService.createRoom(hostId, name, maxPlayers, body.startingCash, body.map);
   }
 
   @Get()
@@ -41,5 +41,39 @@ export class RoomsController {
   @Post(':id/bots')
   async fillWithBots(@Param('id') id: string) {
     return this.roomsService.fillWithBots(id);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Post(':id/settings')
+  async updateRoomSettings(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() body: { maxPlayers?: number; startingCash?: number; map?: string }
+  ) {
+    return this.roomsService.updateRoomSettings(id, req.user.id, body);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Delete(':id/players/:playerId')
+  async kickPlayer(
+    @Param('id') id: string,
+    @Param('playerId') playerId: string,
+    @Request() req: any
+  ) {
+    return this.roomsService.kickPlayer(id, req.user.id, playerId);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Post(':id/players/:playerId/profile')
+  async updatePlayerProfile(
+    @Param('id') id: string,
+    @Param('playerId') playerId: string,
+    @Request() req: any,
+    @Body() body: { nickname?: string; color?: string }
+  ) {
+    if (req.user.id !== playerId) {
+      throw new Error('Can only update your own profile');
+    }
+    return this.roomsService.updatePlayerProfile(id, playerId, body);
   }
 }

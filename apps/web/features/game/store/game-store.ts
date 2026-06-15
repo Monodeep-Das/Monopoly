@@ -7,6 +7,7 @@ interface GameStore {
   roomId: string | null;
   socket: any | null; // Placeholder for actual socket instance
   idleTimeoutAt: number | null;
+  spectators: { id: string; username: string }[];
   
   // Actions
   setGameState: (state: GameState | null) => void;
@@ -16,6 +17,7 @@ interface GameStore {
   dispatchAction: (action: any) => void;
   sendChat: (message: string) => void;
   setIdleTimeout: (timeoutAt: number | null) => void;
+  setSpectators: (spectators: { id: string; username: string }[]) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -24,6 +26,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   roomId: null,
   socket: null,
   idleTimeoutAt: null,
+  spectators: [],
 
   setGameState: (state) => set({ gameState: state, idleTimeoutAt: null }),
   
@@ -57,4 +60,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   setIdleTimeout: (timeoutAt) => set({ idleTimeoutAt: timeoutAt }),
+
+  setSpectators: (spectators) => set({ spectators }),
 }));

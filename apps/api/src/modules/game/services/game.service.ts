@@ -9,6 +9,7 @@ import { RoomStatus } from '@prisma/client';
 interface ActiveGame {
   engine: Game;
   clients: Set<string>; // Socket IDs of connected clients
+  spectators: Map<string, { id: string; username: string }>; // Socket ID -> User Info
   lastActionTime: number;
   idleWarningSent: boolean;
 }
@@ -24,10 +25,23 @@ export class GameService implements OnModuleInit {
   private roomToGame = new Map<string, string>(); // roomId -> gameId
   private auctionTimers = new Map<string, NodeJS.Timeout>();
 
-  // Callback to broadcast state updates directly from the engine to the Gateway
   public broadcastCallback?: (roomId: string, events: GameEvent[], state: GameState) => void;
   // Callback to emit arbitrary raw socket events
   public broadcastRawCallback?: (roomId: string, event: string, payload: any) => void;
+
+  private onlinePlayersCount = 0;
+
+  public incrementOnlinePlayers() {
+    this.onlinePlayersCount++;
+  }
+
+  public decrementOnlinePlayers() {
+    this.onlinePlayersCount = Math.max(0, this.onlinePlayersCount - 1);
+  }
+
+  public getOnlinePlayersCount() {
+    return this.onlinePlayersCount;
+  }
 
   constructor(
     private prisma: PrismaService,
@@ -103,7 +117,7 @@ export class GameService implements OnModuleInit {
         players: {
           create: room.players.map((p: any) => ({
             userId: p.userId,
-            money: 1500,
+            money: room.startingCash,
           })),
         },
       },
@@ -111,16 +125,19 @@ export class GameService implements OnModuleInit {
 
     // Create Engine Instance
     const playerSetup = room.players.map((p: any, i: number) => {
-      const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+      const colors = [
+        '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4',
+        '#ec4899', '#84cc16', '#eab308', '#14b8a6', '#6366f1', '#f97316'
+      ];
       return {
         id: p.userId,
-        name: p.user.username,
-        color: colors[i % colors.length],
+        name: p.nickname || p.user.username,
+        color: p.color || colors[i % colors.length],
         isBot: p.user.isBot, // Inject isBot flag into the setup if needed, but Game engine doesn't strictly need it. We will use Prisma query later.
       };
     });
 
-    const engine = new Game(playerSetup);
+    const engine = new Game(playerSetup, { startingCash: room.startingCash });
     const initialState = engine.getState();
 
     // Save initial state to DB
@@ -138,6 +155,7 @@ export class GameService implements OnModuleInit {
     this.activeGames.set(dbGame.id, {
       engine,
       clients: new Set(),
+      spectators: new Map(),
       lastActionTime: Date.now(),
       idleWarningSent: false,
     });
@@ -165,6 +183,21 @@ export class GameService implements OnModuleInit {
     return room ? room.status : null;
   }
 
+  async getLastGameState(roomId: string): Promise<GameState | null> {
+    const game = await this.prisma.game.findFirst({
+      where: { roomId },
+      orderBy: { startedAt: 'desc' },
+    });
+    if (game && game.gameState) {
+      try {
+        return JSON.parse(game.gameState as string);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   async restoreGameFromDB(roomId: string): Promise<string | undefined> {
     const game = await this.prisma.game.findFirst({
       where: { roomId, status: 'IN_PROGRESS' },
@@ -179,6 +212,7 @@ export class GameService implements OnModuleInit {
         this.activeGames.set(game.id, {
           engine,
           clients: new Set(),
+          spectators: new Map(),
           lastActionTime: Date.now(),
           idleWarningSent: false,
         });
@@ -207,7 +241,36 @@ export class GameService implements OnModuleInit {
     const game = this.activeGames.get(gameId);
     if (game) {
       game.clients.delete(clientId);
-      // Optional: Cleanup inactive games after a timeout
+    }
+  }
+
+  addSpectator(gameId: string, clientId: string, user: { id: string; username: string }) {
+    const game = this.activeGames.get(gameId);
+    if (game) {
+      game.spectators.set(clientId, user);
+      this.broadcastSpectators(gameId);
+    }
+  }
+
+  removeSpectator(gameId: string, clientId: string) {
+    const game = this.activeGames.get(gameId);
+    if (game && game.spectators.has(clientId)) {
+      game.spectators.delete(clientId);
+      this.broadcastSpectators(gameId);
+    }
+  }
+
+  getSpectators(gameId: string) {
+    const game = this.activeGames.get(gameId);
+    if (!game) return [];
+    return Array.from(game.spectators.values());
+  }
+
+  private broadcastSpectators(gameId: string) {
+    const roomId = [...this.roomToGame.entries()].find(([k, v]) => v === gameId)?.[0];
+    if (roomId && this.broadcastRawCallback) {
+      const spectators = this.getSpectators(gameId);
+      this.broadcastRawCallback(roomId, 'spectators_updated', spectators);
     }
   }
 

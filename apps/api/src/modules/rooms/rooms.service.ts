@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RoomStatus } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class RoomsService implements OnModuleInit {
@@ -36,12 +37,17 @@ export class RoomsService implements OnModuleInit {
     }
   }
 
-  async createRoom(hostId: string, name: string, maxPlayers: number) {
+  async createRoom(hostId: string, name: string, maxPlayers: number, startingCash?: number, map?: string) {
+    const shortId = crypto.randomBytes(3).toString('hex').toUpperCase();
+
     const room = await this.prisma.room.create({
       data: {
+        id: shortId,
         name,
         hostId,
         maxPlayers,
+        startingCash: startingCash ?? 1500,
+        map: map ?? "classic",
         status: RoomStatus.WAITING,
         players: {
           create: {
@@ -58,7 +64,7 @@ export class RoomsService implements OnModuleInit {
 
   async getRooms() {
     return this.prisma.room.findMany({
-      where: { status: RoomStatus.WAITING },
+      where: { status: { in: [RoomStatus.WAITING, RoomStatus.IN_GAME] } },
       include: {
         players: { include: { user: true } },
       },
@@ -155,6 +161,92 @@ export class RoomsService implements OnModuleInit {
         },
       });
     }
+
+    return this.getRoomById(roomId);
+  }
+
+  async updatePlayerProfile(roomId: string, userId: string, profile: { nickname?: string; color?: string }) {
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      include: { players: true },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    if (room.status !== RoomStatus.WAITING) {
+      throw new BadRequestException('Cannot update profile after game has started');
+    }
+
+    if (profile.color) {
+      const isTaken = room.players.some(p => p.userId !== userId && p.color === profile.color);
+      if (isTaken) {
+        throw new BadRequestException('Color is already taken by another player');
+      }
+    }
+
+    try {
+      await this.prisma.roomPlayer.update({
+        where: { roomId_userId: { roomId, userId } },
+        data: {
+          nickname: profile.nickname,
+          color: profile.color,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException('Player not in room');
+    }
+
+    return this.getRoomById(roomId);
+  }
+
+  async updateRoomSettings(roomId: string, userId: string, settings: { maxPlayers?: number; startingCash?: number; map?: string }) {
+    const room = await this.prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) throw new NotFoundException('Room not found');
+    
+    if (room.hostId !== userId) {
+      throw new BadRequestException('Only the host can update room settings');
+    }
+
+    if (room.status !== RoomStatus.WAITING) {
+      throw new BadRequestException('Cannot change settings after game has started');
+    }
+
+    await this.prisma.room.update({
+      where: { id: roomId },
+      data: {
+        maxPlayers: settings.maxPlayers,
+        startingCash: settings.startingCash,
+        map: settings.map,
+      },
+    });
+
+    return this.getRoomById(roomId);
+  }
+
+  async kickPlayer(roomId: string, hostId: string, playerIdToKick: string) {
+    const room = await this.prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) throw new NotFoundException('Room not found');
+    
+    if (room.hostId !== hostId) {
+      throw new BadRequestException('Only the host can kick players');
+    }
+
+    if (hostId === playerIdToKick) {
+      throw new BadRequestException('Host cannot kick themselves');
+    }
+
+    if (room.status !== RoomStatus.WAITING) {
+      throw new BadRequestException('Cannot kick players after game has started');
+    }
+
+    await this.prisma.roomPlayer.deleteMany({
+      where: {
+        roomId,
+        userId: playerIdToKick,
+      },
+    });
 
     return this.getRoomById(roomId);
   }

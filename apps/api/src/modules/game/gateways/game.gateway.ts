@@ -43,16 +43,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   async handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
+    this.gameService.incrementOnlinePlayers();
     // Authentication is handled in guards or explicitly upon join
   }
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
+    this.gameService.decrementOnlinePlayers();
     const roomId = this.clientRooms.get(client.id);
     if (roomId) {
       const gameId = this.gameService.getGameIdForRoom(roomId);
       if (gameId) {
         this.gameService.removeClientFromGame(gameId, client.id);
+        this.gameService.removeSpectator(gameId, client.id);
       }
       this.clientRooms.delete(client.id);
     }
@@ -79,16 +82,30 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
     if (gameId) {
-      this.gameService.addClientToGame(gameId, client.id);
-      
-      // Send current state to the joining client
       const engine = this.gameService.getGameEngine(gameId);
+      
       if (engine) {
+        const isPlayer = engine.getState().players.some(p => p.id === user.sub);
+        if (isPlayer) {
+          this.gameService.addClientToGame(gameId, client.id);
+        } else {
+          // Join as Spectator
+          this.gameService.addSpectator(gameId, client.id, { id: user.sub, username: user.username || 'Guest' });
+        }
+        
         client.emit('game_state', engine.getState());
+        client.emit('spectators_updated', this.gameService.getSpectators(gameId));
       }
     } else {
       const status = await this.gameService.getRoomStatus(roomId);
-      if (!status || status === 'FINISHED' || status === 'ABORTED') {
+      if (status === 'FINISHED') {
+        const state = await this.gameService.getLastGameState(roomId);
+        if (state) {
+          client.emit('game_state', state);
+        } else {
+          client.emit('game_aborted', { reason: 'not_found' });
+        }
+      } else if (!status || status === 'ABORTED') {
         client.emit('game_aborted', { reason: 'not_found' });
       }
       // If status === 'WAITING', it just hasn't started yet, so do nothing.
@@ -142,6 +159,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     if (!gameId) return { status: 'error', message: 'Game not started' };
 
     await this.gameService.handleChat(gameId, user.sub, payload.message);
+    
+    return { status: 'ok' };
+  }
+
+  @UseGuards(WsClerkAuthGuard)
+  @SubscribeMessage('room_chat_send')
+  async handleRoomChatSend(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { text: string },
+  ) {
+    const user = client.data.user;
+    const roomId = this.clientRooms.get(client.id);
+    
+    if (!roomId) return { status: 'error', message: 'Not in a room' };
+    
+    // Broadcast message to everyone in the room
+    this.server.to(roomId).emit('room_chat_receive', { 
+      sender: user.username || 'Guest', 
+      text: payload.text 
+    });
     
     return { status: 'ok' };
   }

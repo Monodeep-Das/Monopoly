@@ -6,13 +6,21 @@ export interface Room {
   hostId: string;
   status: string;
   maxPlayers: number;
-  players: { userId: string; user: { username: string; avatarUrl: string | null } }[];
+  startingCash: number;
+  map: string;
+  players: { userId: string; nickname?: string | null; color?: string | null; user: { username: string; avatarUrl: string | null } }[];
 }
 
 export const roomsApi = {
   getRooms: () => fetchApi<Room[]>('/rooms'),
   
-  createRoom: (data: { name?: string; maxPlayers?: number }) => 
+  updatePlayerProfile: (roomId: string, playerId: string, profile: { nickname?: string; color?: string }) =>
+    fetchApi<Room>(`/rooms/${roomId}/players/${playerId}/profile`, {
+      method: 'POST',
+      body: JSON.stringify(profile),
+    }),
+  
+  createRoom: (data: { name?: string; maxPlayers?: number; startingCash?: number; map?: string }) => 
     fetchApi<Room>('/rooms', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -30,5 +38,15 @@ export const roomsApi = {
 
   fillBots: (id: string) => fetchApi<Room>(`/rooms/${id}/bots`, {
     method: 'POST',
+  }),
+
+  updateRoomSettings: (id: string, settings: { maxPlayers?: number; startingCash?: number; map?: string }) => 
+    fetchApi<Room>(`/rooms/${id}/settings`, {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+
+  kickPlayer: (roomId: string, playerId: string) => fetchApi<Room>(`/rooms/${roomId}/players/${playerId}`, {
+    method: 'DELETE',
   }),
 };
