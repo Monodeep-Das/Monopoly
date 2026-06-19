@@ -31,7 +31,7 @@ const MagneticButton = ({ children, href, className, variant = "primary" }: { ch
     mouseY.set(0);
   };
 
-  const baseStyles = "relative inline-flex items-center justify-center px-8 py-4 font-bold rounded-2xl overflow-hidden transition-colors duration-300 z-10";
+  const baseStyles = "relative inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 text-sm sm:text-base font-bold rounded-2xl overflow-hidden transition-colors duration-300 z-10";
   
   const variants = {
     primary: "bg-primary text-primary-foreground hover:bg-primary/90 glow-accent shadow-lg shadow-primary/30",
@@ -91,7 +91,7 @@ const Particles = () => {
 
 const BackgroundBoard = () => {
   return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-0 opacity-30 mix-blend-screen perspective-1000">
+    <div className="absolute inset-0 hidden md:flex items-center justify-center overflow-hidden pointer-events-none z-0 opacity-30 mix-blend-screen perspective-1000">
       <motion.div 
         className="relative w-[1200px] h-[1200px] border-4 border-indigo-500/30 rounded-3xl flex transform-style-3d shadow-[0_0_100px_rgba(99,102,241,0.2)]"
         animate={{ 
@@ -153,17 +153,17 @@ export function HeroSection() {
   return (
     <motion.section 
       ref={containerRef}
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-20"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-16 sm:pt-20 px-4 sm:px-0"
       style={{ background: backgroundStyle }}
     >
       <BackgroundBoard />
       <Particles />
 
-      <div className="absolute bottom-0 inset-x-0 h-1/2 opacity-20 pointer-events-none mix-blend-screen flex items-end justify-center gap-2">
+      <div className="absolute bottom-0 inset-x-0 h-1/3 sm:h-1/2 opacity-20 pointer-events-none mix-blend-screen hidden sm:flex items-end justify-center gap-1 sm:gap-2">
         {Array.from({ length: 15 }).map((_, i) => (
           <motion.div
             key={i}
-            className="w-12 bg-primary/30 rounded-t-sm"
+            className="w-6 sm:w-12 bg-primary/30 rounded-t-sm"
             initial={{ height: 0 }}
             animate={{ height: `${((i * 31) % 80) + 20}%` }}
             transition={{ duration: 2, ease: "easeOut", delay: i * 0.1 }}
@@ -186,7 +186,7 @@ export function HeroSection() {
             initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
             animate={{ opacity: 1, scale: 1, rotate: -10 }}
             transition={{ duration: 0.8, type: "spring", bounce: 0.5 }}
-            className="absolute -top-20 -left-20 md:-top-32 md:-left-32 w-40 h-40 md:w-56 md:h-56 z-0 pointer-events-none drop-shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+            className="absolute -top-12 -left-10 sm:-top-20 sm:-left-20 md:-top-32 md:-left-32 w-24 h-24 sm:w-40 sm:h-40 md:w-56 md:h-56 z-0 pointer-events-none drop-shadow-[0_0_20px_rgba(168,85,247,0.2)]"
           >
             <motion.img 
               src="/monopoly-man.png" 
@@ -197,7 +197,7 @@ export function HeroSection() {
             />
           </motion.div>
 
-          <h1 className="text-7xl md:text-9xl font-black mb-4 tracking-tighter uppercase relative z-10">
+          <h1 className="text-5xl sm:text-7xl md:text-9xl font-black mb-4 tracking-tighter uppercase relative z-10">
             <span className="bg-gradient-to-br from-indigo-300 via-purple-400 to-amber-200 text-transparent bg-clip-text drop-shadow-[0_0_30px_rgba(139,92,246,0.3)]">
               Monopoly
             </span>
@@ -209,16 +209,16 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
         >
-          <p className="text-2xl md:text-3xl font-bold text-slate-200 mb-6 tracking-wide drop-shadow-md">
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-200 mb-4 sm:mb-6 tracking-wide drop-shadow-md">
             The Ultimate Real-Time Property Empire
           </p>
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-12 font-medium">
+          <p className="text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-8 sm:mb-12 font-medium px-2">
             Buy properties. Build monopolies. Outsmart your friends. Rule the board.
           </p>
         </motion.div>
 
         <motion.div 
-          className="flex flex-col sm:flex-row gap-6 items-center justify-center w-full"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-center justify-center w-full px-4 sm:px-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
@@ -236,7 +236,7 @@ export function HeroSection() {
       </div>
 
       <motion.div 
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center text-muted-foreground gap-2"
+        className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center text-muted-foreground gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 1 }}

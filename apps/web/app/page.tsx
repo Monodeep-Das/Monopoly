@@ -9,7 +9,7 @@ import { Preloader } from "@/components/landing/Preloader";
 
 export default function LandingPage() {
   return (
-    <div className="bg-background text-foreground min-h-screen overflow-x-hidden selection:bg-primary/30 cursor-none">
+    <div className="bg-background text-foreground min-h-screen overflow-x-hidden selection:bg-primary/30 md:cursor-none">
       <Preloader />
       <CustomCursor />
       <HeroSection />

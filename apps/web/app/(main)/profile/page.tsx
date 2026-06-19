@@ -27,9 +27,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex justify-between items-center mb-12">
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 p-4 sm:p-8 font-sans">
+      <div className="max-w-5xl mx-auto mt-4 sm:mt-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <div>
             <button 
               onClick={() => router.push("/rooms")}
@@ -37,7 +37,7 @@ export default function ProfilePage() {
             >
               ← Back to Lobby
             </button>
-            <h1 className="text-4xl font-black text-slate-100">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-100 drop-shadow-sm">
               My Profile
             </h1>
           </div>
@@ -138,10 +138,15 @@ export default function ProfilePage() {
                         </p>
                       </div>
                       
-                      <div className="text-right flex flex-col gap-1 items-end">
-                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Final Rank</span>
-                        <span className="text-2xl font-black text-slate-200">#{match.rank || '-'}</span>
-                        <span className="text-emerald-400 font-bold text-sm">${match.finalMoney}</span>
+                      <div className="text-left sm:text-right flex flex-row sm:flex-col gap-3 sm:gap-1 items-center sm:items-end mt-2 sm:mt-0 bg-slate-950/50 sm:bg-transparent p-3 sm:p-0 rounded-xl w-full sm:w-auto justify-between">
+                        <div className="flex flex-col sm:items-end">
+                          <span className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">Final Rank</span>
+                          <span className="text-xl sm:text-2xl font-black text-slate-200">#{match.rank || '-'}</span>
+                        </div>
+                        <div className="flex flex-col sm:items-end text-right">
+                          <span className="text-[10px] sm:hidden font-bold text-slate-400 uppercase tracking-widest">Money</span>
+                          <span className="text-emerald-400 font-bold text-base sm:text-sm">${match.finalMoney}</span>
+                        </div>
                       </div>
                     </motion.div>
                   ))}

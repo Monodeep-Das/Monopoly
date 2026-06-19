@@ -7,7 +7,7 @@ export function TradeSection() {
   return (
     <section className="py-32 bg-background relative overflow-hidden flex items-center justify-center min-h-screen">
       <motion.div 
-        className="absolute w-[800px] h-[800px] bg-rose-500/10 rounded-full blur-[100px] pointer-events-none"
+        className="absolute w-[400px] h-[400px] sm:w-[800px] sm:h-[800px] bg-rose-500/10 rounded-full blur-[100px] pointer-events-none"
         animate={{ 
           x: [0, 100, -100, 0],
           y: [0, -100, 100, 0]
@@ -19,14 +19,14 @@ export function TradeSection() {
         }}
       />
 
-      <div className="container mx-auto px-4 z-10 flex flex-col lg:flex-row items-center gap-16">
-        <div className="flex-1 w-full relative h-[600px] flex items-center justify-center">
+      <div className="container mx-auto px-4 z-10 flex flex-col lg:flex-row items-center gap-8 sm:gap-16">
+        <div className="flex-1 w-full relative h-[350px] sm:h-[600px] flex items-center justify-center">
           
           <motion.div 
-            className="absolute z-20 glassmorphism p-6 rounded-2xl w-64 shadow-2xl border-rose-500/30"
+            className="absolute z-20 glassmorphism p-4 sm:p-6 rounded-2xl w-48 sm:w-64 shadow-2xl border-rose-500/30"
             initial={{ opacity: 0, x: -100, y: -50, rotate: -15 }}
-            whileInView={{ opacity: 1, x: -80, y: -20, rotate: -5 }}
-            viewport={{ once: true, margin: "-100px" }}
+            whileInView={{ opacity: 1, x: -40, y: -10, rotate: -5 }}
+            viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.8, type: "spring" }}
             whileHover={{ y: -30, rotate: 0, zIndex: 30 }}
           >
@@ -42,10 +42,10 @@ export function TradeSection() {
           </motion.div>
 
           <motion.div 
-            className="absolute z-10 glassmorphism p-6 rounded-2xl w-64 shadow-2xl border-indigo-500/30"
+            className="absolute z-10 glassmorphism p-4 sm:p-6 rounded-2xl w-48 sm:w-64 shadow-2xl border-indigo-500/30"
             initial={{ opacity: 0, x: 100, y: 50, rotate: 15 }}
             whileInView={{ opacity: 1, x: 80, y: 20, rotate: 5 }}
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.8, type: "spring", delay: 0.2 }}
             whileHover={{ y: 10, rotate: 0, zIndex: 30 }}
           >
@@ -67,20 +67,20 @@ export function TradeSection() {
           </motion.div>
 
           <motion.div
-            className="absolute z-30 w-20 h-20 bg-gradient-to-br from-rose-500 to-indigo-600 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(236,72,153,0.5)] border-4 border-background"
+            className="absolute z-30 w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br from-rose-500 to-indigo-600 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(236,72,153,0.5)] border-4 border-background"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.5, delay: 0.6, type: "spring", bounce: 0.6 }}
           >
-            <Handshake className="w-10 h-10 text-white" />
+            <Handshake className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
           </motion.div>
           
         </div>
 
         <div className="flex-1">
           <motion.h2 
-            className="text-4xl md:text-6xl font-black mb-6"
+            className="text-3xl sm:text-4xl md:text-6xl font-black mb-4 sm:mb-6"
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -89,7 +89,7 @@ export function TradeSection() {
             Master the Art of <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-orange-500">Negotiation</span>
           </motion.h2>
           <motion.p 
-            className="text-xl text-muted-foreground mb-8"
+            className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8"
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}

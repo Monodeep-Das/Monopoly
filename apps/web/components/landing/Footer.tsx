@@ -5,14 +5,14 @@ import { motion } from "framer-motion";
 
 export function Footer() {
   return (
-    <footer className="relative bg-[#050714] pt-32 pb-12 overflow-hidden border-t border-white/5">
+    <footer className="relative bg-[#050714] pt-16 sm:pt-32 pb-8 sm:pb-12 overflow-hidden border-t border-white/5">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
       <div className="absolute -top-[200px] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/20 blur-[150px] pointer-events-none rounded-full" />
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="flex flex-col items-center text-center mb-24">
+        <div className="flex flex-col items-center text-center mb-12 sm:mb-24">
           <motion.h2 
-            className="text-5xl md:text-7xl font-black mb-8 uppercase tracking-tighter"
+            className="text-3xl sm:text-5xl md:text-7xl font-black mb-6 sm:mb-8 uppercase tracking-tighter"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -29,16 +29,16 @@ export function Footer() {
           >
             <Link 
               href="/rooms" 
-              className="inline-flex items-center justify-center px-12 py-5 bg-white text-black hover:bg-slate-200 font-black rounded-2xl transition-all duration-300 hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.3)] text-xl uppercase tracking-widest"
+              className="inline-flex items-center justify-center px-8 sm:px-12 py-4 sm:py-5 bg-white text-black hover:bg-slate-200 font-black rounded-2xl transition-all duration-300 hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.3)] text-lg sm:text-xl uppercase tracking-widest w-full sm:w-auto"
             >
               Play Now - It's Free
             </Link>
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 border-t border-white/10 pt-16">
-          <div className="col-span-1 md:col-span-2">
-            <h3 className="text-3xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-500">MONOPOLY</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12 mb-12 sm:mb-16 border-t border-white/10 pt-10 sm:pt-16">
+          <div className="col-span-2">
+            <h3 className="text-2xl sm:text-3xl font-black mb-3 sm:mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-500">MONOPOLY</h3>
             <p className="text-slate-400 max-w-md">
               The ultimate real-time multiplayer property trading game. Buy, build, trade, and dominate your opponents in sub-millisecond synced lobbies.
             </p>

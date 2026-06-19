@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Monopoly - Multiplayer Board Game',
-  description: 'A modern multiplayer property trading game built with Next.js and NestJS',
+  description: 'Buy properties. Build monopolies. Outsmart your friends. Rule the board.',
   generator: 'v0.app',
 }
 

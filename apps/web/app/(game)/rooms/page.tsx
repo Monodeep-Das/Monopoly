@@ -69,7 +69,7 @@ export default function LobbyPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#111118] text-slate-100 p-8 font-sans overflow-hidden">
+    <div className="relative min-h-screen bg-[#111118] text-slate-100 p-4 sm:p-8 font-sans overflow-hidden">
       <RoomSettingsModal 
         isOpen={isCreating} 
         onClose={() => setIsCreating(false)} 
@@ -86,16 +86,16 @@ export default function LobbyPage() {
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30L30 0z' fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '30px 30px' }}
       />
 
-      <div className="relative z-10 max-w-6xl mx-auto mt-4">
-        <header className="flex justify-between items-center mb-12">
+      <div className="relative z-10 max-w-6xl mx-auto mt-2 sm:mt-4">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <div>
-            <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-amber-200 drop-shadow-sm">
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-amber-200 drop-shadow-sm">
               Game Lobby
             </h1>
             <p className="text-slate-400 mt-2 font-medium tracking-wide">Join an open game or create your own</p>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             <div className="text-right hidden sm:block">
               <p className="font-bold text-slate-200 tracking-wide">{user?.username}</p>
               <p className="text-[10px] text-amber-400 font-black uppercase tracking-widest drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
@@ -103,10 +103,10 @@ export default function LobbyPage() {
               </p>
             </div>
             
-            <div className="flex bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg items-center px-4 py-2">
+            <div className="flex bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg items-center px-3 py-1.5 sm:px-4 sm:py-2">
               <button
                 onClick={() => router.push("/leaderboard")}
-                className="px-3 py-1.5 text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2 rounded-md border-r border-white/10 mr-4 pr-5"
+                className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5 sm:gap-2 rounded-md border-r border-white/10 mr-2 sm:mr-4 pr-3 sm:pr-5"
               >
                 <Trophy size={16} className="text-amber-400" /> Rankings
               </button>
@@ -123,32 +123,32 @@ export default function LobbyPage() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6 order-first">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleCreateRoom}
               disabled={createRoomMutation.isPending}
-              className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black py-4 px-6 rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-sm border border-purple-400/30"
+              className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black py-3 sm:py-4 px-4 sm:px-6 rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-widest text-xs sm:text-sm border border-purple-400/30"
             >
               <Plus size={20} />
               {createRoomMutation.isPending ? "Creating..." : "Create Room"}
             </motion.button>
             
-            <div className="glassmorphism rounded-3xl p-6 relative group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
-              <h3 className="font-black text-slate-300 mb-6 uppercase tracking-widest text-xs flex items-center gap-2 relative z-10">
+            <div className="glassmorphism rounded-3xl p-4 sm:p-6 relative group hover:border-indigo-500/30 transition-all duration-500">
+              <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+              <h3 className="font-black text-slate-300 mb-4 sm:mb-6 uppercase tracking-widest text-xs flex items-center gap-2 relative z-10">
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
                 Quick Stats
               </h3>
-              <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
+              <div className="space-y-3 sm:space-y-4 relative z-10 grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
+                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
                   <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Open Rooms</span>
                   <span className="text-indigo-400 font-black text-2xl drop-shadow-md">{rooms?.length || 0}</span>
                 </div>
-                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
+                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/5 group-hover:border-white/10 transition-colors">
                   <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Players Online</span>
                   <span className="text-emerald-400 font-black text-2xl drop-shadow-md">
                     {onlinePlayers?.count ?? "--"}
@@ -162,8 +162,8 @@ export default function LobbyPage() {
           <div className="lg:col-span-3">
             <div className="bg-[#161622]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden relative">
               
-              <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
-                <h2 className="text-2xl font-black text-slate-100 tracking-tight flex items-center gap-3">
+              <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                <h2 className="text-lg sm:text-2xl font-black text-slate-100 tracking-tight flex items-center gap-3">
                   Available Rooms
                 </h2>
                 <button 
@@ -175,7 +175,7 @@ export default function LobbyPage() {
                 </button>
               </div>
               
-              <div className="p-0 min-h-[400px]">
+              <div className="p-0 min-h-[250px] sm:min-h-[400px]">
                 {isLoading ? (
                   <div className="p-16 flex flex-col items-center justify-center text-indigo-400/50 font-bold tracking-widest uppercase text-sm animate-pulse">
                     <RefreshCw size={32} className="mb-4 animate-spin" />
@@ -196,13 +196,13 @@ export default function LobbyPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         key={room.id} 
-                        className="p-6 hover:bg-white/[0.03] transition-all flex items-center justify-between group"
+                        className="p-4 sm:p-6 hover:bg-white/[0.03] transition-all flex flex-col sm:flex-row sm:items-center justify-between group gap-3 sm:gap-0"
                       >
                         <div>
-                          <h3 className="font-black text-xl text-slate-200 group-hover:text-indigo-300 transition-colors tracking-wide">
+                          <h3 className="font-black text-lg sm:text-xl text-slate-200 group-hover:text-indigo-300 transition-colors tracking-wide">
                             {room.name}
                           </h3>
-                          <div className="flex items-center gap-4 mt-3 text-sm">
+                          <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm flex-wrap">
                             {room.status === 'IN_GAME' ? (
                               <span className="flex items-center gap-2 text-fuchsia-300 bg-black/30 px-3 py-1.5 rounded-lg border border-fuchsia-500/20 font-bold shadow-inner">
                                 <span className="w-2 h-2 rounded-full bg-fuchsia-500 animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]"></span>
@@ -220,7 +220,7 @@ export default function LobbyPage() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
                           {room.hostId === user?.id && room.status === 'WAITING' && (
                             <button
                               onClick={(e) => {
@@ -240,7 +240,7 @@ export default function LobbyPage() {
                           {room.status === 'IN_GAME' ? (
                             <button
                               onClick={() => router.push(`/game/${room.id}`)}
-                              className="bg-fuchsia-500/10 hover:bg-fuchsia-500 text-fuchsia-400 hover:text-white font-black uppercase tracking-widest py-2.5 px-8 rounded-xl transition-all border border-fuchsia-500/30 flex items-center gap-2 group-hover:shadow-[0_0_15px_rgba(217,70,239,0.3)]"
+                              className="bg-fuchsia-500/10 hover:bg-fuchsia-500 text-fuchsia-400 hover:text-white font-black uppercase tracking-widest py-2 px-4 sm:py-2.5 sm:px-8 rounded-xl transition-all border border-fuchsia-500/30 flex items-center gap-2 text-xs sm:text-sm group-hover:shadow-[0_0_15px_rgba(217,70,239,0.3)]"
                             >
                               <Eye size={18} /> Spectate
                             </button>
@@ -251,7 +251,7 @@ export default function LobbyPage() {
                                 joinRoomMutation.mutate(room.id);
                               }}
                               disabled={joinRoomMutation.isPending || room.players.length >= room.maxPlayers}
-                              className="bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white font-black uppercase tracking-widest py-2.5 px-8 rounded-xl transition-all border border-indigo-500/30 disabled:opacity-50 disabled:hover:bg-indigo-500/10 disabled:hover:text-indigo-400 flex items-center gap-2 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                              className="bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white font-black uppercase tracking-widest py-2 px-4 sm:py-2.5 sm:px-8 rounded-xl transition-all border border-indigo-500/30 disabled:opacity-50 disabled:hover:bg-indigo-500/10 disabled:hover:text-indigo-400 flex items-center gap-2 text-xs sm:text-sm group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
                             >
                               {joinRoomMutation.variables === room.id && joinRoomMutation.isPending 
                                 ? "Joining..." 

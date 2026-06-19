@@ -6,18 +6,18 @@ import Dice3D from "@/components/Dice3D";
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#111118] flex flex-col items-center justify-center p-4 text-slate-100 overflow-hidden relative">
-      <div className="absolute top-1/4 left-1/4 opacity-10">
+      <div className="hidden sm:block absolute top-1/4 left-[10%] lg:left-1/4 opacity-10">
         <Dice3D value={6} />
       </div>
-      <div className="absolute bottom-1/4 right-1/4 opacity-10">
+      <div className="hidden sm:block absolute bottom-1/4 right-[10%] lg:right-1/4 opacity-10">
         <Dice3D value={6} />
       </div>
 
-      <div className="relative z-10 text-center mb-8">
-        <h1 className="text-5xl font-black bg-gradient-to-br from-indigo-400 to-purple-400 text-transparent bg-clip-text mb-2 tracking-tight">
+      <div className="relative z-10 text-center mb-6 sm:mb-8 mt-8 sm:mt-0">
+        <h1 className="text-4xl sm:text-5xl font-black bg-gradient-to-br from-indigo-400 to-purple-400 text-transparent bg-clip-text mb-2 tracking-tight">
           Monopoly
         </h1>
-        <p className="text-slate-400 font-medium">Log in to your account</p>
+        <p className="text-slate-400 font-medium text-sm sm:text-base">Log in to your account</p>
       </div>
 
       <div className="relative z-10 shadow-2xl rounded-2xl overflow-hidden border border-white/10">
