@@ -8,14 +8,14 @@ const EDGE_WIDTH = 80;
 export function getTileRect(index: number): Rect {
   const safeIndex = index % 40;
 
-  if (safeIndex === 0) return { x: BOARD_SIZE - CORNER_SIZE, y: BOARD_SIZE - CORNER_SIZE, w: CORNER_SIZE, h: CORNER_SIZE }; // Go
-  if (safeIndex > 0 && safeIndex < 10) return { x: BOARD_SIZE - CORNER_SIZE - (safeIndex * EDGE_WIDTH), y: BOARD_SIZE - CORNER_SIZE, w: EDGE_WIDTH, h: CORNER_SIZE }; // Bottom
-  if (safeIndex === 10) return { x: 0, y: BOARD_SIZE - CORNER_SIZE, w: CORNER_SIZE, h: CORNER_SIZE }; // Jail
-  if (safeIndex > 10 && safeIndex < 20) return { x: 0, y: BOARD_SIZE - CORNER_SIZE - ((safeIndex - 10) * EDGE_WIDTH), w: CORNER_SIZE, h: EDGE_WIDTH }; // Left
-  if (safeIndex === 20) return { x: 0, y: 0, w: CORNER_SIZE, h: CORNER_SIZE }; // Free Parking
-  if (safeIndex > 20 && safeIndex < 30) return { x: CORNER_SIZE + ((safeIndex - 21) * EDGE_WIDTH), y: 0, w: EDGE_WIDTH, h: CORNER_SIZE }; // Top
-  if (safeIndex === 30) return { x: BOARD_SIZE - CORNER_SIZE, y: 0, w: CORNER_SIZE, h: CORNER_SIZE }; // Go To Jail
-  if (safeIndex > 30 && safeIndex < 40) return { x: BOARD_SIZE - CORNER_SIZE, y: CORNER_SIZE + ((safeIndex - 31) * EDGE_WIDTH), w: CORNER_SIZE, h: EDGE_WIDTH }; // Right
+  if (safeIndex === 0) return { x: 0, y: BOARD_SIZE - CORNER_SIZE, w: CORNER_SIZE, h: CORNER_SIZE }; // Go (bottom-left)
+  if (safeIndex > 0 && safeIndex < 10) return { x: CORNER_SIZE + ((safeIndex - 1) * EDGE_WIDTH), y: BOARD_SIZE - CORNER_SIZE, w: EDGE_WIDTH, h: CORNER_SIZE }; // Bottom (moving right)
+  if (safeIndex === 10) return { x: BOARD_SIZE - CORNER_SIZE, y: BOARD_SIZE - CORNER_SIZE, w: CORNER_SIZE, h: CORNER_SIZE }; // Jail (bottom-right)
+  if (safeIndex > 10 && safeIndex < 20) return { x: BOARD_SIZE - CORNER_SIZE, y: BOARD_SIZE - CORNER_SIZE - ((safeIndex - 10) * EDGE_WIDTH), w: CORNER_SIZE, h: EDGE_WIDTH }; // Right (moving up)
+  if (safeIndex === 20) return { x: BOARD_SIZE - CORNER_SIZE, y: 0, w: CORNER_SIZE, h: CORNER_SIZE }; // Free Parking (top-right)
+  if (safeIndex > 20 && safeIndex < 30) return { x: BOARD_SIZE - CORNER_SIZE - ((safeIndex - 20) * EDGE_WIDTH), y: 0, w: EDGE_WIDTH, h: CORNER_SIZE }; // Top (moving left)
+  if (safeIndex === 30) return { x: 0, y: 0, w: CORNER_SIZE, h: CORNER_SIZE }; // Go To Jail (top-left)
+  if (safeIndex > 30 && safeIndex < 40) return { x: 0, y: CORNER_SIZE + ((safeIndex - 31) * EDGE_WIDTH), w: CORNER_SIZE, h: EDGE_WIDTH }; // Left (moving down)
   
   return { x: 0, y: 0, w: 0, h: 0 };
 }

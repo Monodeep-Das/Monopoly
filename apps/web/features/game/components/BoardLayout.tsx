@@ -39,9 +39,9 @@ export const BoardLayout = memo(function BoardLayout({ onTileClick }: { onTileCl
         // Determine tile side for text rotation
         let rotation = 0;
         if (i > 0 && i < 10) rotation = 0;     // bottom row
-        if (i > 10 && i < 20) rotation = 90;   // right column
+        if (i > 10 && i < 20) rotation = -90;  // right column
         if (i > 20 && i < 30) rotation = 180;  // top row
-        if (i > 30 && i < 40) rotation = -90;  // left column
+        if (i > 30 && i < 40) rotation = 90;   // left column
 
         // Get ownership color tint
         let tileFill = "#16213e";
