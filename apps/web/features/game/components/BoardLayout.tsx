@@ -4,7 +4,49 @@ import { memo } from "react";
 import React from 'react';
 import { Plane, Gift, Home, Building, CarFront, Siren, Lock, Rocket } from 'lucide-react';
 import { getTileRect } from "../utils/board-math";
-import { BOARD_TILES } from "@richup/game-engine";
+
+export const BOARD_TILES = [
+  { index: 0, name: 'GO', type: 'corner', cornerType: 'go', icon: '🎮' },
+  { index: 1, name: 'Salvador', type: 'property', group: 'brown', price: 60, icon: '🏺', flag: '🇧🇷' },
+  { index: 2, name: 'Community Chest', type: 'community-chest', icon: '📊' },
+  { index: 3, name: 'Rio de Janeiro', type: 'property', group: 'brown', price: 60, icon: '🏔️', flag: '🇧🇷' },
+  { index: 4, name: 'Income Tax', type: 'tax', amount: 200, icon: '📋' },
+  { index: 5, name: 'TLV Airport', type: 'railroad', price: 200, icon: '✈️', flag: '🇮🇱' },
+  { index: 6, name: 'Tel Aviv', type: 'property', group: 'light-blue', price: 100, icon: '🏙️', flag: '🇮🇱' },
+  { index: 7, name: 'Chance', type: 'chance', icon: '❓' },
+  { index: 8, name: 'Haifa', type: 'property', group: 'light-blue', price: 100, icon: '⛵', flag: '🇮🇱' },
+  { index: 9, name: 'Jerusalem', type: 'property', group: 'light-blue', price: 120, icon: '⛪', flag: '🇮🇱' },
+  { index: 10, name: 'Jail / Just Visiting', type: 'corner', cornerType: 'jail', icon: '⚠️' },
+  { index: 11, name: 'Rome', type: 'property', group: 'pink', price: 140, icon: '🏛️', flag: '🇮🇹' },
+  { index: 12, name: 'Electric Company', type: 'utility', price: 150, icon: '⚡' },
+  { index: 13, name: 'Milan', type: 'property', group: 'pink', price: 140, icon: '🏢', flag: '🇮🇹' },
+  { index: 14, name: 'Venice', type: 'property', group: 'pink', price: 160, icon: '🛶', flag: '🇮🇹' },
+  { index: 15, name: 'Munich Airport', type: 'railroad', price: 200, icon: '✈️', flag: '🇩🇪' },
+  { index: 16, name: 'Frankfurt', type: 'property', group: 'orange', price: 180, icon: '🏢', flag: '🇩🇪' },
+  { index: 17, name: 'Community Chest', type: 'community-chest', icon: '🅿️' },
+  { index: 18, name: 'Munich', type: 'property', group: 'orange', price: 180, icon: '🍺', flag: '🇩🇪' },
+  { index: 19, name: 'Berlin', type: 'property', group: 'orange', price: 200, icon: '🏛️', flag: '🇩🇪' },
+  { index: 20, name: 'Free Parking', type: 'corner', cornerType: 'free-parking', icon: '🅿️' },
+  { index: 21, name: 'Shanghai', type: 'property', group: 'red', price: 220, icon: '🏙️', flag: '🇨🇳' },
+  { index: 22, name: 'Chance', type: 'chance', icon: '❓' },
+  { index: 23, name: 'Beijing', type: 'property', group: 'red', price: 220, icon: '🏰', flag: '🇨🇳' },
+  { index: 24, name: 'Shenzhen', type: 'property', group: 'red', price: 240, icon: '🌆', flag: '🇨🇳' },
+  { index: 25, name: 'CDG Airport', type: 'railroad', price: 200, icon: '✈️', flag: '🇫🇷' },
+  { index: 26, name: 'Toulouse', type: 'property', group: 'yellow', price: 260, icon: '🏛️', flag: '🇫🇷' },
+  { index: 27, name: 'Lyon', type: 'property', group: 'yellow', price: 260, icon: '🍷', flag: '🇫🇷' },
+  { index: 28, name: 'Water Works', type: 'utility', price: 150, icon: '💧' },
+  { index: 29, name: 'Versailles', type: 'property', group: 'yellow', price: 280, icon: '⛲', flag: '🇫🇷' },
+  { index: 30, name: 'Go To Jail', type: 'corner', cornerType: 'go-to-jail', icon: '🚔' },
+  { index: 31, name: 'London', type: 'property', group: 'green', price: 300, icon: '🎡', flag: '🇬🇧' },
+  { index: 32, name: 'Manchester', type: 'property', group: 'green', price: 300, icon: '🏟️', flag: '🇬🇧' },
+  { index: 33, name: 'Community Chest', type: 'community-chest', icon: '🎁' },
+  { index: 34, name: 'Liverpool', type: 'property', group: 'green', price: 320, icon: '🎸', flag: '🇬🇧' },
+  { index: 35, name: 'JFK\nAirport', type: 'railroad', price: 200, icon: '✈️', flag: '🇺🇸' },
+  { index: 36, name: 'Chance', type: 'chance', icon: '❓' },
+  { index: 37, name: 'San Francisco', type: 'property', group: 'dark-blue', price: 350, icon: '🌉', flag: '🇺🇸' },
+  { index: 38, name: 'Luxury Tax', type: 'tax', amount: 100, icon: '💰' },
+  { index: 39, name: 'New York', type: 'property', group: 'dark-blue', price: 400, icon: '🗽', flag: '🇺🇸' },
+];
 import { useGameStore } from "../store/game-store";
 
 const FLAG_CODES: Record<string, string> = {
